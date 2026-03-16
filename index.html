@@ -1148,28 +1148,64 @@ select.form-input{cursor:pointer}
 
 <!-- Settings -->
 <div id="overlay-settings" class="overlay hidden">
-  <div class="modal" style="max-width:360px">
+  <div class="modal" style="max-width:380px">
     <div class="modal-head">
-      <h3>Settings</h3>
+      <h3>Change Password</h3>
       <button class="modal-close" onclick="closeOverlay('overlay-settings')">✕</button>
     </div>
     <div class="modal-body">
+
+      <!-- Current password -->
       <div class="form-group">
-        <label class="form-label">Change Password</label>
-        <input type="password" class="form-input" id="set-cur" placeholder="Current password" style="margin-bottom:8px">
-        <input type="password" class="form-input" id="set-new" placeholder="New password">
+        <label class="form-label">Current Password *</label>
+        <input type="password" class="form-input" id="set-cur" placeholder="Enter current password"
+          oninput="onPwdInput()">
       </div>
-      <div id="set-err" class="hidden" style="color:var(--red);font-size:.78rem;margin-top:4px"></div>
+
+      <!-- New password -->
+      <div class="form-group">
+        <label class="form-label">New Password *</label>
+        <div style="position:relative">
+          <input type="password" class="form-input" id="set-new" placeholder="Min 6 characters"
+            oninput="onPwdInput()" style="padding-right:36px">
+          <span id="set-new-eye" onclick="togglePwdVisible('set-new','set-new-eye')"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;color:var(--muted)">👁</span>
+        </div>
+        <!-- Strength bar -->
+        <div style="display:flex;gap:4px;margin-top:6px" id="set-strength-bars">
+          <div style="height:3px;flex:1;border-radius:2px;background:#eee" id="sb1"></div>
+          <div style="height:3px;flex:1;border-radius:2px;background:#eee" id="sb2"></div>
+          <div style="height:3px;flex:1;border-radius:2px;background:#eee" id="sb3"></div>
+          <div style="height:3px;flex:1;border-radius:2px;background:#eee" id="sb4"></div>
+        </div>
+        <div id="set-strength-label" style="font-size:.68rem;color:var(--muted);margin-top:3px"></div>
+      </div>
+
+      <!-- Confirm password -->
+      <div class="form-group">
+        <label class="form-label">Confirm New Password *</label>
+        <div style="position:relative">
+          <input type="password" class="form-input" id="set-confirm" placeholder="Type new password again"
+            oninput="onPwdInput()" style="padding-right:36px">
+          <span id="set-match-icon"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:1.1rem;display:none"></span>
+        </div>
+        <div id="set-match-msg" style="font-size:.72rem;margin-top:4px"></div>
+      </div>
+
+      <div id="set-err" class="hidden" style="color:var(--red);font-size:.78rem;margin-top:-4px;padding:8px;background:var(--red-bg);border-radius:6px"></div>
+
       <div class="divider"></div>
       <div class="form-group">
         <label class="form-label">Import from PDF Report</label>
-        <p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Loads all 41 quality specs, 100 machine assignments, and the 13-03-2026 Night shift report from your uploaded PDF.</p>
+        <p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Loads all 41 quality specs, 100 machine assignments and the 13-03-2026 Night shift report.</p>
         <button id="import-seed-btn" class="btn btn-primary btn-sm btn-block" onclick="loadPdfSeed()">📥 Load PDF Data (13-03-2026 Night)</button>
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost btn-sm" onclick="closeOverlay('overlay-settings')">Cancel</button>
-      <button class="btn btn-primary btn-sm" onclick="savePassword()">Update Password</button>
+      <button class="btn btn-primary btn-sm" id="set-save-btn" onclick="savePassword()" disabled
+        style="opacity:.5;cursor:not-allowed">Update Password</button>
     </div>
   </div>
 </div>
@@ -1409,7 +1445,30 @@ function closeOverlay(id){ document.getElementById(id).classList.add('hidden'); 
 document.querySelectorAll('.overlay').forEach(ov=>{
   ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.add('hidden'); });
 });
-function openSettings(){ openOverlay('overlay-settings'); }
+function openSettings(){
+  // Reset all password fields
+  ['set-cur','set-new','set-confirm'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.value = ''; el.type = 'password'; }
+  });
+  const eyeEl = document.getElementById('set-new-eye');
+  if(eyeEl) eyeEl.textContent = '👁';
+  ['sb1','sb2','sb3','sb4'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.background = '#eee';
+  });
+  const sl = document.getElementById('set-strength-label');
+  if(sl) sl.textContent = '';
+  const mi = document.getElementById('set-match-icon');
+  if(mi) mi.style.display = 'none';
+  const mm = document.getElementById('set-match-msg');
+  if(mm) mm.textContent = '';
+  const errEl = document.getElementById('set-err');
+  if(errEl) errEl.classList.add('hidden');
+  const saveBtn = document.getElementById('set-save-btn');
+  if(saveBtn){ saveBtn.disabled = true; saveBtn.style.opacity = '.5'; saveBtn.style.cursor = 'not-allowed'; }
+  openOverlay('overlay-settings');
+}
 
 // ═══════════════════════════════════════════════
 //  SHIFT ENTRY PAGE
@@ -2459,25 +2518,128 @@ function renderInstructions(){
 // ═══════════════════════════════════════════════
 //  SETTINGS / PASSWORD
 // ═══════════════════════════════════════════════
+function togglePwdVisible(inputId, eyeId){
+  const el = document.getElementById(inputId);
+  const eye = document.getElementById(eyeId);
+  if(!el) return;
+  if(el.type === 'password'){
+    el.type = 'text';
+    if(eye) eye.textContent = '🙈';
+  } else {
+    el.type = 'password';
+    if(eye) eye.textContent = '👁';
+  }
+}
+
+function pwdStrength(pwd){
+  let score = 0;
+  if(pwd.length >= 6)  score++;
+  if(pwd.length >= 10) score++;
+  if(/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+  if(/[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) score++;
+  return score; // 0-4
+}
+
+function onPwdInput(){
+  const nw      = document.getElementById('set-new').value;
+  const confirm = document.getElementById('set-confirm').value;
+  const cur     = document.getElementById('set-cur').value;
+  const saveBtn = document.getElementById('set-save-btn');
+  const errEl   = document.getElementById('set-err');
+  errEl.classList.add('hidden');
+
+  // Strength bar
+  const score  = pwdStrength(nw);
+  const colors = ['#ef4444','#f97316','#eab308','#22c55e'];
+  const labels = ['Weak','Fair','Good','Strong'];
+  ['sb1','sb2','sb3','sb4'].forEach((id,i)=>{
+    const el = document.getElementById(id);
+    if(el) el.style.background = i < score ? colors[score-1] : '#eee';
+  });
+  const strengthLabel = document.getElementById('set-strength-label');
+  if(strengthLabel) strengthLabel.textContent = nw.length > 0 ? labels[score-1]||'Weak' : '';
+
+  // Match indicator
+  const matchIcon = document.getElementById('set-match-icon');
+  const matchMsg  = document.getElementById('set-match-msg');
+  if(confirm.length > 0){
+    if(nw === confirm){
+      if(matchIcon){ matchIcon.textContent = '✅'; matchIcon.style.display = 'block'; }
+      if(matchMsg){ matchMsg.textContent = 'Passwords match'; matchMsg.style.color = '#22c55e'; }
+    } else {
+      if(matchIcon){ matchIcon.textContent = '❌'; matchIcon.style.display = 'block'; }
+      if(matchMsg){ matchMsg.textContent = 'Passwords do not match'; matchMsg.style.color = '#ef4444'; }
+    }
+  } else {
+    if(matchIcon) matchIcon.style.display = 'none';
+    if(matchMsg)  matchMsg.textContent = '';
+  }
+
+  // Enable save button only when all conditions met
+  const ready = cur.length > 0 && nw.length >= 6 && nw === confirm;
+  if(saveBtn){
+    saveBtn.disabled = !ready;
+    saveBtn.style.opacity = ready ? '1' : '.5';
+    saveBtn.style.cursor  = ready ? 'pointer' : 'not-allowed';
+  }
+}
+
 function savePassword(){
-  const cur=document.getElementById('set-cur').value;
-  const nw=document.getElementById('set-new').value;
-  const errEl=document.getElementById('set-err');
-  if(cur!==(LS.get('ownerPassword')||'4321')){ errEl.textContent='Current password incorrect'; errEl.classList.remove('hidden'); return; }
-  if(nw.length<4){ errEl.textContent='Min 4 characters'; errEl.classList.remove('hidden'); return; }
-  // Save to cache + localStorage + Firebase
+  const cur   = document.getElementById('set-cur').value.trim();
+  const nw    = document.getElementById('set-new').value.trim();
+  const conf  = document.getElementById('set-confirm').value.trim();
+  const errEl = document.getElementById('set-err');
+
+  // Validate current password — same triple-fallback as login
+  const storedPwd = String(
+    CACHE['ownerPassword'] ||
+    localStorage.getItem('nnp_ownerPassword') ||
+    '4321'
+  ).replace(/^"|"$/g, '').trim();
+
+  if(cur !== storedPwd){
+    errEl.textContent = 'Current password is incorrect';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if(nw.length < 6){
+    errEl.textContent = 'New password must be at least 6 characters';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if(nw !== conf){
+    errEl.textContent = 'Passwords do not match';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  // ── Save to CACHE + localStorage + Firebase ──
   CACHE['ownerPassword'] = nw;
   localStorage.setItem('nnp_ownerPassword', JSON.stringify(nw));
+
   if(firebaseReady && db){
     db.collection('nnp_data').doc('ownerPassword')
       .set({ value: JSON.stringify(nw), updatedAt: new Date().toISOString() })
-      .then(()=> toast('Password updated ✓ — synced to all devices'))
-      .catch(()=> toast('Password updated locally ✓'));
+      .then(()=>{
+        toast('✅ Password updated — synced to all devices');
+      })
+      .catch((e)=>{
+        toast('Password saved locally — Firebase sync failed');
+        console.warn('Firebase pwd save failed:', e.message);
+      });
   } else {
     toast('Password updated locally ✓');
   }
+
   errEl.classList.add('hidden');
   closeOverlay('overlay-settings');
+
+  // Reset fields
+  ['set-cur','set-new','set-confirm'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  onPwdInput();
 }
 
 // ═══════════════════════════════════════════════
@@ -2521,13 +2683,11 @@ window.doLogin = function doLogin(){
   if(username === 'owner'){
     const ownerPwd = CACHE['ownerPassword'] || localStorage.getItem('nnp_ownerPassword') || '4321';
     const cleanPwd = String(ownerPwd).replace(/^"|"$/g, '').trim();
-    // DEBUG — remove after fix
-    alert('You typed: [' + pass + ']\nStored pwd: [' + cleanPwd + ']\nMatch: ' + (pass === cleanPwd));
     if(pass === cleanPwd){
       loginSuccess({ username:'owner', name:'OWNER', role:'owner' });
       return;
     }
-    errEl.textContent = 'Wrong password. Default is: 4321';
+    errEl.textContent = 'Incorrect password';
     errEl.style.display = 'block';
     return;
   }
