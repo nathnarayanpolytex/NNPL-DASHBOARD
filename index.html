@@ -2521,52 +2521,70 @@ async function doLogin(){
   try {
     // ── Owner login ──
     if(username === 'owner'){
-      let ownerPwd = '4321'; // hardcoded default
+      // Check all possible stored passwords — never block on Firebase
+      const storedPwd =
+        CACHE['ownerPassword'] ||
+        (()=>{ try{ const v=localStorage.getItem('nnp_ownerPassword'); return v?JSON.parse(v):null; }catch(e){return null;} })() ||
+        '4321';
 
-      // Try Firebase first
-      if(firebaseReady && db){
-        try {
-          const snap = await db.collection('nnp_data').doc('ownerPassword').get();
-          if(snap.exists) ownerPwd = JSON.parse(snap.data().value);
-        } catch(e){ console.warn('Firebase owner pwd fetch failed:', e.message); }
-      }
-
-      // Fallback chain: cache → localStorage → default
-      if(!ownerPwd || ownerPwd === '4321'){
-        ownerPwd = CACHE['ownerPassword']
-          || (()=>{ try{ return JSON.parse(localStorage.getItem('nnp_ownerPassword')); }catch(e){ return null; } })()
-          || '4321';
-      }
-
-      if(pass === String(ownerPwd)){
+      if(pass === String(storedPwd)){
+        // Background-sync from Firebase (don't wait for it)
+        if(firebaseReady && db){
+          db.collection('nnp_data').doc('ownerPassword').get()
+            .then(snap=>{ if(snap.exists){ CACHE['ownerPassword']=JSON.parse(snap.data().value); }})
+            .catch(()=>{});
+        }
         loginSuccess({ username:'owner', name:'OWNER', role:'owner' });
       } else {
-        errEl.textContent = 'Incorrect password for owner';
-        errEl.style.display = 'block';
-        document.getElementById('login-pass').value = '';
+        // One more try — fetch from Firebase in case password was changed on another device
+        let remotePwd = null;
+        if(firebaseReady && db){
+          try {
+            const snap = await Promise.race([
+              db.collection('nnp_data').doc('ownerPassword').get(),
+              new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),3000))
+            ]);
+            if(snap.exists) remotePwd = JSON.parse(snap.data().value);
+          } catch(e){}
+        }
+        if(remotePwd && pass === String(remotePwd)){
+          CACHE['ownerPassword'] = remotePwd;
+          localStorage.setItem('nnp_ownerPassword', JSON.stringify(remotePwd));
+          loginSuccess({ username:'owner', name:'OWNER', role:'owner' });
+        } else {
+          errEl.textContent = 'Incorrect password';
+          errEl.style.display = 'block';
+          document.getElementById('login-pass').value = '';
+        }
       }
       return;
     }
 
     // ── Supervisor / Fitter login ──
-    let users = [];
+    // Try local cache first (fast), then Firebase
+    let users =
+      CACHE['users'] ||
+      (()=>{ try{ const v=localStorage.getItem('nnp_users'); return v?JSON.parse(v):null; }catch(e){return null;} })() ||
+      [];
 
-    // Try Firebase first
-    if(firebaseReady && db){
+    let user = users.find(u => u.username.toLowerCase() === username && u.password === pass);
+
+    // Not found locally — try Firebase
+    if(!user && firebaseReady && db){
       try {
-        const snap = await db.collection('nnp_data').doc('users').get();
-        if(snap.exists) users = JSON.parse(snap.data().value) || [];
-      } catch(e){ console.warn('Firebase users fetch failed:', e.message); }
+        const snap = await Promise.race([
+          db.collection('nnp_data').doc('users').get(),
+          new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),3000))
+        ]);
+        if(snap.exists){
+          users = JSON.parse(snap.data().value)||[];
+          CACHE['users'] = users;
+          localStorage.setItem('nnp_users', JSON.stringify(users));
+          user = users.find(u => u.username.toLowerCase() === username && u.password === pass);
+        }
+      } catch(e){}
     }
 
-    // Fallback to cache/localStorage
-    if(!users.length){
-      users = CACHE['users']
-        || (()=>{ try{ return JSON.parse(localStorage.getItem('nnp_users')); }catch(e){ return null; } })()
-        || [];
-    }
-
-    const user = users.find(u => u.username.toLowerCase() === username && u.password === pass);
     if(user){
       loginSuccess(user);
     } else {
