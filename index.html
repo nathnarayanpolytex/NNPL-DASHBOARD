@@ -2520,7 +2520,10 @@ window.doLogin = function doLogin(){
   // ── OWNER ──
   if(username === 'owner'){
     const ownerPwd = CACHE['ownerPassword'] || localStorage.getItem('nnp_ownerPassword') || '4321';
-    if(pass === String(ownerPwd).replace(/^"|"$/g, '')){
+    const cleanPwd = String(ownerPwd).replace(/^"|"$/g, '').trim();
+    // DEBUG — remove after fix
+    alert('You typed: [' + pass + ']\nStored pwd: [' + cleanPwd + ']\nMatch: ' + (pass === cleanPwd));
+    if(pass === cleanPwd){
       loginSuccess({ username:'owner', name:'OWNER', role:'owner' });
       return;
     }
