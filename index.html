@@ -1359,7 +1359,7 @@ else updateClock();
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGE_TITLES = {entry:'Shift Entry',reports:'Efficiency Reports',qualities:'Quality Master',machines:'Machine Setup',changes:'Machine Changes',dashboard:'Dashboard',instructions:'Daily Instructions',users:'User Management',users:'User Management'};
+const PAGE_TITLES = {entry:'Shift Entry',reports:'Efficiency Reports',qualities:'Quality Master',machines:'Machine Setup',changes:'Machine Changes',dashboard:'Dashboard',instructions:'Daily Instructions',users:'User Management'};
 
 function navigate(page){
   currentPage = page;
@@ -1485,7 +1485,7 @@ function renderMcList(filter){
 }
 
 // Filter buttons
-document.getElementById('mc-filter-bar').addEventListener('click', e=>{
+document.getElementById('mc-filter-bar')?.addEventListener('click', e=>{
   const btn = e.target.closest('.filter-btn');
   if(!btn) return;
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
@@ -1637,7 +1637,7 @@ function calcMceProd(){
 }
 
 // RPM also triggers recalc
-document.getElementById('mce-rpm').addEventListener('input', calcMceProd);
+document.getElementById('mce-rpm')?.addEventListener('input', calcMceProd);
 
 function saveMcEntry(){
   const mcNum = editingMcEntryNum;
@@ -2507,7 +2507,7 @@ function showLoginScreen(){
   document.getElementById('login-pass').onkeydown = e => { if(e.key==='Enter') doLogin(); };
 }
 
-async function doLogin(){
+window.doLogin = async function doLogin(){
   const username = (document.getElementById('login-name').value||'').trim().toLowerCase();
   const pass     = (document.getElementById('login-pass').value||'').trim();
   const errEl    = document.getElementById('login-err');
@@ -2874,7 +2874,12 @@ function postLoginInit(){
   navigate('entry');
 }
 
-init();
+// Start the app when DOM is fully ready
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init(); // DOM already ready
+}
 
 // ═══════════════════════════════════════════════
 //  PDF SEED DATA  — 13-03-2026 NIGHT SHIFT
