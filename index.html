@@ -149,6 +149,8 @@ select.form-input{cursor:pointer}
 
 /* ── MACHINE ROW (supervisor entry) ── */
 .mc-entry-list{display:flex;flex-direction:column;gap:8px}
+.ms-filter{padding:5px 12px;border-radius:20px;font-size:.72rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:#555;transition:all .15s}
+.ms-filter.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 .mc-row{background:#fff;border-radius:var(--r2);border:1px solid var(--border);border-left:4px solid var(--red);overflow:hidden}
 .mc-row.inactive{border-left-color:var(--border);opacity:.7}
 .mc-row-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;user-select:none}
@@ -222,6 +224,36 @@ select.form-input{cursor:pointer}
 
 /* ── OPERATOR TAG ── */
 .op-tag{display:inline-block;background:rgba(11,23,36,.07);color:var(--navy-3);padding:2px 8px;border-radius:12px;font-size:.68rem;font-weight:500}
+
+/* ── MACHINE GRID (new entry) ── */
+/* ── MACHINE GROUPS ── */
+.mc-group{margin-bottom:18px;border-radius:var(--r2);overflow:hidden;border:1px solid var(--border)}
+.mc-group-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;cursor:pointer;user-select:none}
+.mc-group-title{font-family:'Playfair Display',serif;font-size:.72rem;font-weight:600;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.06em}
+.mc-group-meta{display:flex;align-items:center;gap:8px}
+.mc-group-progress{font-size:.72rem;color:rgba(255,255,255,.75);font-weight:600}
+.mc-group-chevron{color:rgba(255,255,255,.6);font-size:.75rem;transition:transform .2s}
+.mc-group.collapsed .mc-group-chevron{transform:rotate(-90deg)}
+.mc-group-bar{height:3px;background:rgba(255,255,255,.2)}
+.mc-group-bar-fill{height:100%;transition:width .4s}
+.mc-group-body{background:#fff}
+
+/* ── EFFICIENCY REPORT ROWS ── */
+.mc-table{width:100%;border-collapse:collapse}
+.mc-table-head th{background:var(--navy);color:#fff;padding:8px 10px;font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;text-align:left;position:sticky;top:0;z-index:2}
+.mc-table-head th:first-child{width:52px;border-radius:6px 0 0 0}
+.mc-table-head th:last-child{border-radius:0 6px 0 0}
+.mc-row-r{border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.mc-row-r:hover td{background:#faf8f3}
+.mc-row-r.filled td{background:#f0fdf4}
+.mc-row-r.filled td:first-child{border-left:3px solid #22c55e}
+.mc-row-r.stopped td{background:#fdecea;opacity:.85}
+.mc-row-r.stopped td:first-child{border-left:3px solid #c0392b}
+.mc-row-r td{padding:9px 10px;font-size:.78rem;color:var(--ink);vertical-align:middle}
+.mc-row-r td:first-child{font-family:'Playfair Display',serif;font-weight:700;color:var(--navy);font-size:1.2rem;white-space:nowrap}
+.mc-eff-cell{font-weight:700;font-size:.78rem;border-radius:6px;padding:3px 8px;display:inline-block}
+.mc-stop-btn{font-size:.62rem;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--red-bg);color:var(--red);border:1px solid rgba(192,57,43,.2);cursor:pointer;white-space:nowrap}
+.mc-stop-btn.active{background:#c0392b;color:#fff;border-color:#c0392b}
 
 /* ── CHANGE LOG ── */
 .change-card{background:#fff;border-radius:var(--r2);border:1px solid var(--border);padding:14px 16px;margin-bottom:8px;transition:box-shadow .15s;cursor:pointer}
@@ -305,8 +337,11 @@ select.form-input{cursor:pointer}
     </div>
     <nav class="sidebar-nav">
       <div class="sb-section">Operations</div>
+      <button class="sb-item" data-page="instructions">
+        <span class="icon">📋</span> Instructions
+      </button>
       <button class="sb-item active" data-page="entry">
-        <span class="icon">📝</span> Shift Entry
+        <span class="icon">📝</span> Efficiency Report
       </button>
       <button class="sb-item" data-page="reports">
         <span class="icon">📊</span> Reports
@@ -326,9 +361,6 @@ select.form-input{cursor:pointer}
       <div class="sb-section">Management</div>
       <button class="sb-item" data-page="dashboard">
         <span class="icon">🏠</span> Dashboard
-      </button>
-      <button class="sb-item" data-page="instructions">
-        <span class="icon">📋</span> Instructions
       </button>
       <button class="sb-item" data-page="users" id="sb-users-btn">
         <span class="icon">👥</span> Users
@@ -364,75 +396,224 @@ select.form-input{cursor:pointer}
 
     <!-- ══ PAGE: SHIFT ENTRY ══ -->
     <div id="page-entry" class="page active">
-      <div class="shift-header">
-        <h2 id="entry-heading">Shift Entry</h2>
-        <div class="shift-meta">
-          <span class="badge badge-gold" id="entry-shift-badge">Day Shift</span>
-          <span class="badge badge-navy" id="entry-date-badge"></span>
-          <span class="badge badge-navy" id="entry-filled-badge">0 / 100 filled</span>
-        </div>
-      </div>
 
-      <div id="import-banner" style="background:linear-gradient(135deg,#1a1a1a,#2a2a2a);border:1px solid rgba(192,57,43,.4);border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <!-- Header bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-family:'Playfair Display',serif;color:#fff;font-size:.95rem">Import your PDF report data</div>
-          <div style="font-size:.73rem;color:#7a8899;margin-top:3px">41 qualities · 100 machines · 13-03-2026 Night shift — one tap to load</div>
+          <h2 id="entry-heading" style="font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--navy);margin:0"></h2>
+          <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
+            <span class="badge" style="background:rgba(192,57,43,.1);color:#c0392b" id="entry-shift-badge">Day Shift</span>
+            <span class="badge badge-navy" id="entry-date-badge"></span>
+            <span class="badge badge-green" id="entry-filled-badge">0 / 100</span>
+          </div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="loadPdfSeed();document.getElementById('import-banner').style.display='none'">📥 Import Now</button>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" onclick="openShiftPicker()">🔄 Change Shift/Date</button>
-        <button class="btn btn-ghost btn-sm" onclick="saveShiftEntry()">💾 Save Report</button>
-        <button class="btn btn-ghost btn-sm" onclick="exportCurrentReport()">📊 Export Excel</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="openShiftPicker()">🔄 Shift</button>
+          <button class="btn btn-primary btn-sm" onclick="saveShiftEntry()">💾 Save Report</button>
+        </div>
       </div>
 
-      <div class="filter-bar" id="mc-filter-bar">
-        <button class="filter-btn active" data-filter="all">All (100)</button>
-        <button class="filter-btn" data-filter="filled">Filled</button>
-        <button class="filter-btn" data-filter="empty">Pending</button>
-        <button class="filter-btn" data-filter="1-25">MC 1–25</button>
-        <button class="filter-btn" data-filter="26-50">MC 26–50</button>
-        <button class="filter-btn" data-filter="51-75">MC 51–75</button>
-        <button class="filter-btn" data-filter="76-100">MC 76–100</button>
+      <!-- Group filter tabs -->
+      <div id="entry-group-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+
+      <!-- Import banner -->
+      <div id="import-banner" style="background:linear-gradient(135deg,#1a1a1a,#2a2a2a);border:1px solid rgba(192,57,43,.4);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="font-size:.78rem;color:#ccc">📥 Load PDF data — 41 qualities, 100 machines, Night 13-03-2026</div>
+        <button class="btn btn-primary btn-sm" onclick="loadPdfSeed();document.getElementById('import-banner').style.display='none'">Import</button>
       </div>
 
-      <div id="mc-entry-list" class="mc-entry-list"></div>
+      <!-- Machine groups list -->
+      <div id="mc-entry-list"></div>
     </div>
 
     <!-- ══ PAGE: REPORTS ══ -->
     <div id="page-reports" class="page">
-      <div class="page-title">Efficiency Reports</div>
+      <div class="page-title">Reports</div>
       <div class="page-sub">All saved shift reports</div>
       <div id="reports-stats" class="stats-grid" style="margin-bottom:14px"></div>
       <div id="reports-list"></div>
     </div>
 
+    <!-- ══ PAGE: VIEW REPORT ══ -->
+    <div id="page-viewreport" class="page">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('reports')">← Back</button>
+        <div style="flex:1">
+          <div class="page-title" id="vr-title" style="margin-bottom:0">Report</div>
+          <div id="vr-subtitle" style="font-size:.72rem;color:var(--muted);margin-top:2px"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="exportViewedReport()">📊 Excel</button>
+        <button class="btn btn-ghost btn-sm" onclick="printViewedReport()">🖨️ Print</button>
+      </div>
+
+      <!-- Summary stat cards -->
+      <div id="vr-stats" class="stats-grid" style="margin-bottom:14px"></div>
+
+      <!-- Search & filter bar -->
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r2);padding:12px 16px;margin-bottom:12px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="search-wrap" style="margin:0;flex:1;min-width:180px">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-input" id="vr-search"
+              placeholder="Search MC#, quality, operator, reason..."
+              oninput="filterReportTable()">
+          </div>
+          <select class="form-input" id="vr-filter-eff" style="width:auto;padding:9px 12px" onchange="filterReportTable()">
+            <option value="">All Efficiency</option>
+            <option value="high">≥80% (Good)</option>
+            <option value="mid">60–79% (OK)</option>
+            <option value="low">&lt;60% (Low)</option>
+            <option value="stop">Stopped</option>
+          </select>
+          <select class="form-input" id="vr-filter-group" style="width:auto;padding:9px 12px" onchange="filterReportTable()">
+            <option value="">All Groups</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearReportFilters()">✕ Clear</button>
+        </div>
+        <div id="vr-filter-count" style="font-size:.72rem;color:var(--muted);margin-top:6px"></div>
+      </div>
+
+      <!-- Operator summary (collapsible) -->
+      <details style="margin-bottom:12px">
+        <summary style="font-size:.78rem;font-weight:700;color:var(--navy);cursor:pointer;padding:10px 0;border-bottom:1px solid var(--border)">
+          👥 Operator Summary
+        </summary>
+        <div id="vr-op-summary" style="margin-top:10px"></div>
+      </details>
+
+      <!-- Machine detail table -->
+      <div style="font-family:'Playfair Display',serif;font-size:.9rem;color:var(--navy);margin-bottom:8px">
+        Machine Detail
+        <span id="vr-row-count" style="font-family:'IBM Plex Sans',sans-serif;font-size:.7rem;color:var(--muted);font-weight:400;margin-left:8px"></span>
+      </div>
+      <div style="overflow-x:auto;border-radius:var(--r2);border:1px solid var(--border)">
+        <table class="tbl" id="vr-table">
+          <thead>
+            <tr id="vr-thead">
+              <th onclick="sortReportTable('mc')" style="cursor:pointer">MC# <span id="sort-mc"></span></th>
+              <th onclick="sortReportTable('quality')" style="cursor:pointer">Quality <span id="sort-quality"></span></th>
+              <th onclick="sortReportTable('operator')" style="cursor:pointer">Operator <span id="sort-operator"></span></th>
+              <th onclick="sortReportTable('rpm')" style="cursor:pointer">RPM <span id="sort-rpm"></span></th>
+              <th onclick="sortReportTable('counter')" style="cursor:pointer">Counter <span id="sort-counter"></span></th>
+              <th onclick="sortReportTable('rollcut')" style="cursor:pointer">Roll Cut <span id="sort-rollcut"></span></th>
+              <th onclick="sortReportTable('prod')" style="cursor:pointer">Prod (kg) <span id="sort-prod"></span></th>
+              <th onclick="sortReportTable('eff')" style="cursor:pointer">Eff% <span id="sort-eff"></span></th>
+              <th onclick="sortReportTable('gsm')" style="cursor:pointer">GSM <span id="sort-gsm"></span></th>
+              <th onclick="sortReportTable('reason')" style="cursor:pointer">Reason <span id="sort-reason"></span></th>
+            </tr>
+          </thead>
+          <tbody id="vr-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ══ PAGE: QUALITY MASTER ══ -->
     <div id="page-qualities" class="page">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div class="page-title">Quality Master</div>
-        <button class="btn btn-primary btn-sm" onclick="openQualityModal()">+ Add Quality</button>
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border)">
+        <button id="qtab-qualities" onclick="switchQualityTab('qualities')"
+          style="padding:9px 18px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--red);border-bottom:2px solid var(--red);margin-bottom:-2px">
+          🎨 Qualities
+        </button>
+        <button id="qtab-yarn" onclick="switchQualityTab('yarn')"
+          style="padding:9px 18px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px">
+          🧵 Yarn Master
+        </button>
       </div>
-      <div class="page-sub">Store GSM, PENA, Yarn for each quality. Assign to machines once.</div>
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input type="text" class="form-input" id="quality-search" placeholder="Search quality name..." oninput="renderQualities()">
+
+      <!-- QUALITIES TAB -->
+      <div id="qtab-qualities-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div class="search-wrap" style="margin:0;flex:1;min-width:160px">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="form-input" id="quality-search" placeholder="Search quality name..." oninput="renderQualities()">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openQualityModal()">+ Add Quality</button>
+        </div>
+        <div style="overflow-x:auto;border-radius:var(--r2);border:1px solid var(--border)">
+          <table class="tbl" id="quality-table">
+            <thead><tr>
+              <th>Quality Name</th><th>GSM</th><th>PENA</th><th>Gauge</th>
+              <th>Yarn</th><th>Spandex</th><th>Roll Cut</th><th></th>
+            </tr></thead>
+            <tbody id="quality-tbody"></tbody>
+          </table>
+        </div>
       </div>
-      <div id="quality-grid" class="quality-grid"></div>
+
+      <!-- YARN MASTER TAB -->
+      <div id="qtab-yarn-body" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="page-sub" style="margin:0">Add yarn types used in your factory. These appear as dropdowns in Quality Master.</div>
+          <button class="btn btn-primary btn-sm" onclick="openYarnModal()">+ Add Yarn</button>
+        </div>
+        <div style="overflow-x:auto;border-radius:var(--r2);border:1px solid var(--border);margin-bottom:16px">
+          <table class="tbl">
+            <thead><tr><th>Yarn Name</th><th>Count / Denier</th><th>Type</th><th>Notes</th><th></th></tr></thead>
+            <tbody id="yarn-tbody"></tbody>
+          </table>
+        </div>
+        <div style="font-family:'Playfair Display',serif;font-size:.9rem;color:var(--navy);margin-bottom:8px">🪢 Spandex / Lycra</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="page-sub" style="margin:0">Spandex types used alongside yarn.</div>
+          <button class="btn btn-primary btn-sm" onclick="openYarnModal('spandex')">+ Add Spandex</button>
+        </div>
+        <div style="overflow-x:auto;border-radius:var(--r2);border:1px solid var(--border)">
+          <table class="tbl">
+            <thead><tr><th>Spandex Name</th><th>Denier</th><th>Notes</th><th></th></tr></thead>
+            <tbody id="spandex-tbody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- ══ PAGE: MACHINE SETUP ══ -->
     <div id="page-machines" class="page">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div class="page-title">Machine Setup</div>
-        <button class="btn btn-primary btn-sm" onclick="openMachineSetupModal()">+ Edit Machine</button>
+      <!-- Sub-tabs -->
+      <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border)">
+        <button id="mstab-machines" onclick="switchMachinesTab('machines')"
+          style="padding:9px 18px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--red);border-bottom:2px solid var(--red);margin-bottom:-2px">
+          ⚙️ Machines
+        </button>
+        <button id="mstab-groups" onclick="switchMachinesTab('groups')"
+          style="padding:9px 18px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px">
+          👥 Groups
+        </button>
       </div>
-      <div class="page-sub">Assign default quality and operator to each machine.</div>
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input type="text" class="form-input" id="machine-search" placeholder="Search machine or operator..." oninput="renderMachineSetup()">
+
+      <!-- MACHINES TAB -->
+      <div id="mstab-machines-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="page-sub" style="margin:0">Assign default quality and operator to each machine.</div>
+          <button class="btn btn-primary btn-sm" onclick="openMachineSetupModal()">+ Edit Machine</button>
+        </div>
+        <!-- Search -->
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="form-input" id="machine-search" placeholder="Search MC#, operator, quality..." oninput="renderMachineSetup()">
+        </div>
+        <!-- Group-by filter chips -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+          <span style="font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Group by:</span>
+          <button class="ms-filter active" data-group="operator" onclick="setMsGroupBy('operator')">👤 Operator</button>
+          <button class="ms-filter" data-group="quality"  onclick="setMsGroupBy('quality')">🎨 Quality</button>
+          <button class="ms-filter" data-group="gauge"    onclick="setMsGroupBy('gauge')">📐 Gauge</button>
+          <button class="ms-filter" data-group="feeder"   onclick="setMsGroupBy('feeder')">🔄 Feeder</button>
+          <button class="ms-filter" data-group="yarn"     onclick="setMsGroupBy('yarn')">🧵 Yarn</button>
+          <button class="ms-filter" data-group="none"     onclick="setMsGroupBy('none')">📋 All Machines</button>
+        </div>
+        <div id="machine-setup-list"></div>
       </div>
-      <div id="machine-setup-list"></div>
+
+      <!-- GROUPS TAB -->
+      <div id="mstab-groups-body" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="page-sub" style="margin:0">Create groups to assign machines to supervisors.</div>
+          <button class="btn btn-primary btn-sm" onclick="openGroupModal()">+ Add Group</button>
+        </div>
+        <div id="groups-list"></div>
+      </div>
     </div>
 
     <!-- ══ PAGE: MACHINE CHANGES ══ -->
@@ -441,35 +622,65 @@ select.form-input{cursor:pointer}
         <div class="page-title">Machine Changes</div>
         <button class="btn btn-primary btn-sm" onclick="openChangeModal()">+ Log Change</button>
       </div>
-      <div class="page-sub">Machine status table + full change history log.</div>
+      <div class="page-sub">Needle set history, quality changes and full change log.</div>
 
       <!-- Sub-tabs -->
-      <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border)">
-        <button id="chtab-status" onclick="switchChangesTab('status')"
-          style="padding:9px 18px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--gold);border-bottom:2px solid var(--gold);margin-bottom:-2px">
-          📋 Machine Status
+      <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border);overflow-x:auto">
+        <button id="chtab-needles" onclick="switchChangesTab('needles')"
+          style="padding:9px 16px;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--red);border-bottom:2px solid var(--red);margin-bottom:-2px;white-space:nowrap">
+          🪡 Needle Sets
+        </button>
+        <button id="chtab-quality" onclick="switchChangesTab('quality')"
+          style="padding:9px 16px;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap">
+          🎨 Quality Changes
         </button>
         <button id="chtab-log" onclick="switchChangesTab('log')"
-          style="padding:9px 18px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px">
+          style="padding:9px 16px;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap">
           🔧 Change Log
         </button>
       </div>
 
-      <!-- MACHINE STATUS TABLE -->
-      <div id="changes-tab-status">
-        <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">
-          Tap any row to edit. Needle Set Date auto-fills when a Needle Change is logged.
+      <!-- NEEDLE SET HISTORY -->
+      <div id="changes-tab-needles">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:.75rem;color:var(--muted)">Full cylinder/dial needle replacements. Tap a row to log a full set change.</div>
+          <div style="display:flex;gap:6px;font-size:.68rem">
+            <span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:8px;font-weight:600">≤6 months</span>
+            <span style="background:#fef9c3;color:#854d0e;padding:2px 8px;border-radius:8px;font-weight:600">6–12 months</span>
+            <span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:8px;font-weight:600">&gt;12 months</span>
+          </div>
         </div>
-        <div class="tbl-wrap">
-          <table class="tbl" id="mc-status-table">
+        <div style="overflow-x:auto;border-radius:var(--r2);border:1px solid var(--border)">
+          <table class="tbl">
             <thead><tr>
-              <th style="width:50px">MC #</th>
+              <th>MC #</th>
+              <th>Operator</th>
               <th>Current Quality</th>
-              <th>Last Quality</th>
-              <th>Needle Set Date</th>
-              <th>Needle Butt</th>
+              <th>Cylinder Last Set</th>
+              <th>Dial Last Set</th>
+              <th>Remarks</th>
+              <th></th>
             </tr></thead>
-            <tbody id="mc-status-tbody"></tbody>
+            <tbody id="needle-set-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- QUALITY CHANGE HISTORY -->
+      <div id="changes-tab-quality" style="display:none">
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Shows when quality was changed on each machine. Latest change per machine.</div>
+        <div style="overflow-x:auto;border-radius:var(--r2);border:1px solid var(--border)">
+          <table class="tbl">
+            <thead><tr>
+              <th>MC #</th>
+              <th>Operator</th>
+              <th>Current Quality</th>
+              <th>Previous Quality</th>
+              <th>Changed On</th>
+              <th>Changed By</th>
+              <th>Days Ago</th>
+            </tr></thead>
+            <tbody id="quality-change-tbody"></tbody>
           </table>
         </div>
       </div>
@@ -589,10 +800,34 @@ select.form-input{cursor:pointer}
     <!-- ══ PAGE: INSTRUCTIONS ══ -->
     <div id="page-instructions" class="page">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div class="page-title">Daily Instructions</div>
-        <button class="btn btn-primary btn-sm" onclick="openInstructionModal()">+ Add</button>
+        <div class="page-title">Instructions</div>
+        <button class="btn btn-primary btn-sm" id="ins-add-btn" onclick="openInstructionModal()" style="display:none">+ Add</button>
       </div>
-      <div class="page-sub">Tasks for supervisors to confirm each day</div>
+      <div class="page-sub" id="ins-reset-info"></div>
+
+      <!-- Shift tabs -->
+      <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border)">
+        <button id="instab-day" onclick="switchInsTab('DAY')"
+          style="padding:9px 18px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--red);border-bottom:2px solid var(--red);margin-bottom:-2px">
+          🌅 Day Shift
+        </button>
+        <button id="instab-night" onclick="switchInsTab('NIGHT')"
+          style="padding:9px 18px;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:none;border:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px">
+          🌙 Night Shift
+        </button>
+      </div>
+
+      <!-- Progress bar -->
+      <div id="ins-progress-wrap" style="margin-bottom:14px;display:none">
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:5px">
+          <span id="ins-progress-label">0 of 0 completed</span>
+          <span id="ins-progress-pct">0%</span>
+        </div>
+        <div style="height:6px;background:#eee;border-radius:3px;overflow:hidden">
+          <div id="ins-progress-bar" style="height:100%;background:#22c55e;border-radius:3px;transition:width .4s;width:0%"></div>
+        </div>
+      </div>
+
       <div id="instructions-list"></div>
     </div>
 
@@ -600,11 +835,11 @@ select.form-input{cursor:pointer}
 
   <!-- ══════════════ BOTTOM NAV (mobile) ══════════════ -->
   <nav class="bottom-nav">
-    <button class="bn-item active" data-page="entry"><span class="icon">📝</span>Entry</button>
+    <button class="bn-item" data-page="instructions"><span class="icon">📋</span>Instructions</button>
+    <button class="bn-item active" data-page="entry"><span class="icon">📝</span>Report</button>
     <button class="bn-item" data-page="reports"><span class="icon">📊</span>Reports</button>
     <button class="bn-item" data-page="changes"><span class="icon">🔧</span>Changes</button>
     <button class="bn-item" data-page="dashboard"><span class="icon">🏠</span>Dashboard</button>
-    <button class="bn-item" data-page="qualities"><span class="icon">🎨</span>Qualities</button>
   </nav>
 
 </div><!-- end root -->
@@ -639,7 +874,7 @@ select.form-input{cursor:pointer}
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost btn-sm" onclick="closeOverlay('overlay-shift')">Cancel</button>
-      <button class="btn btn-primary btn-sm" onclick="confirmShiftPicker()">Open Entry →</button>
+      <button class="btn btn-primary btn-sm" id="sp-confirm-btn" onclick="confirmShiftPicker()">Open Report →</button>
     </div>
   </div>
 </div>
@@ -667,31 +902,81 @@ select.form-input{cursor:pointer}
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Yarn</label>
-        <input type="text" class="form-input" id="qm-yarn" placeholder="e.g. 100/144 MICRO, 75/36">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label class="form-label" style="margin:0">Yarn Composition <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:.65rem">— up to 3 yarns</span></label>
+          <span id="qm-yarn-total" style="font-size:.72rem;font-weight:700;color:#22c55e"></span>
+        </div>
+        <div id="qm-yarn-rows" style="display:flex;flex-direction:column;gap:6px"></div>
+        <button type="button" onclick="addQmYarnRow()" id="qm-yarn-add-btn"
+          style="margin-top:6px;background:none;border:1.5px dashed #ccc;border-radius:8px;width:100%;padding:7px;font-size:.75rem;color:var(--muted);cursor:pointer">
+          + Add Another Yarn
+        </button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Spandex / Lycra <span style="text-transform:none;font-weight:400;color:var(--muted);font-size:.65rem">— optional</span></label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="form-input" id="qm-lycra" style="flex:1">
+            <option value="">— None —</option>
+          </select>
+          <input type="number" id="qm-lycra-pct" placeholder="%" min="0" max="100"
+            style="width:64px;border:1.5px solid var(--border);border-radius:var(--r);padding:10px 8px;font-size:.9rem;text-align:center">
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Gauge</label>
         <input type="text" class="form-input" id="qm-gauge" placeholder="e.g. 28/34/96">
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Lycra</label>
-          <input type="text" class="form-input" id="qm-lycra" placeholder="e.g. 20 LYCRA">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Notes</label>
-          <input type="text" class="form-input" id="qm-notes" placeholder="Optional">
-        </div>
+      <div class="form-group">
+        <label class="form-label">Roll Cut <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(Counter ÷ Roll Cut = Production kg)</span></label>
+        <input type="number" class="form-input" id="qm-rollcut" placeholder="e.g. 174, 212, 238">
       </div>
       <div class="form-group">
-        <label class="form-label">Roll Cut <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(used for Production kg = Counter ÷ Roll Cut)</span></label>
-        <input type="number" class="form-input" id="qm-rollcut" placeholder="e.g. 174, 212, 238">
+        <label class="form-label">Notes</label>
+        <input type="text" class="form-input" id="qm-notes" placeholder="Optional">
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost btn-sm" onclick="closeOverlay('overlay-quality')">Cancel</button>
       <button class="btn btn-primary btn-sm" onclick="saveQuality()">Save Quality</button>
+    </div>
+  </div>
+</div>
+
+<!-- Yarn Modal -->
+<div id="overlay-yarn" class="overlay hidden">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <h3 id="ym-title">Add Yarn</h3>
+      <button class="modal-close" onclick="closeOverlay('overlay-yarn')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" id="ym-name-label">Yarn Name *</label>
+        <input type="text" class="form-input" id="ym-name" placeholder="e.g. 75/36 BRT">
+      </div>
+      <div class="form-group" id="ym-count-group">
+        <label class="form-label">Count / Denier</label>
+        <input type="text" class="form-input" id="ym-count" placeholder="e.g. 75/36, 100/48">
+      </div>
+      <div class="form-group" id="ym-type-group">
+        <label class="form-label">Type</label>
+        <select class="form-input" id="ym-type">
+          <option value="Polyester">Polyester</option>
+          <option value="Nylon">Nylon</option>
+          <option value="Cotton">Cotton</option>
+          <option value="Viscose">Viscose</option>
+          <option value="Modal">Modal</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input type="text" class="form-input" id="ym-notes" placeholder="Optional">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeOverlay('overlay-yarn')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveYarn()">Save</button>
     </div>
   </div>
 </div>
@@ -741,104 +1026,189 @@ select.form-input{cursor:pointer}
 
 <!-- Machine Entry (per-machine quick entry) -->
 <div id="overlay-mc-entry" class="overlay hidden">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-head">
-      <h3 id="mce-title">Machine Entry</h3>
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head" style="padding:12px 16px">
+      <div>
+        <h3 id="mce-title" style="font-size:1rem;margin:0">Machine Entry</h3>
+        <div id="mce-quality-badge" style="font-size:.72rem;color:var(--muted);margin-top:2px"></div>
+      </div>
       <button class="modal-close" onclick="closeOverlay('overlay-mc-entry')">✕</button>
     </div>
-    <div class="modal-body">
-      <div id="mce-quality-info" style="background:var(--gold-pale);border-radius:var(--r);padding:10px 12px;margin-bottom:14px;font-size:.8rem;display:none">
-        <div style="font-weight:600;color:var(--navy)" id="mce-qname"></div>
-        <div style="color:var(--muted);margin-top:3px" id="mce-qspecs"></div>
-      </div>
-      <!-- Change quality for this machine -->
-      <div class="form-group">
-        <label class="form-label">Quality <span style="color:var(--muted);font-size:.65rem;text-transform:none;letter-spacing:0">(change only if different today)</span></label>
-        <select class="form-input" id="mce-quality" onchange="onMceQualityChange()">
-          <option value="">— Select —</option>
-        </select>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">RPM / Speed</label>
-          <input type="number" step="0.1" class="form-input" id="mce-rpm" placeholder="e.g. 22.3" oninput="calcMceProd()">
+    <div class="modal-body" style="padding:16px">
+
+      <!-- The two main inputs — BIG and easy to tap -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <label style="display:block;font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">⚡ RPM / Speed</label>
+          <input type="number" step="0.1" inputmode="decimal"
+            class="form-input" id="mce-rpm" placeholder="22.3"
+            oninput="calcMceProd()"
+            style="font-size:1.4rem;font-weight:700;text-align:center;padding:14px 8px;color:var(--navy)">
         </div>
-        <div class="form-group">
-          <label class="form-label">Counter (actual rounds)</label>
-          <input type="number" class="form-input" id="mce-counter" placeholder="e.g. 15350" oninput="calcMceProd()">
+        <div>
+          <label style="display:block;font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">📟 Roll Count</label>
+          <input type="number" inputmode="numeric"
+            class="form-input" id="mce-counter" placeholder="15350"
+            oninput="calcMceProd()"
+            style="font-size:1.4rem;font-weight:700;text-align:center;padding:14px 8px;color:var(--navy)">
         </div>
       </div>
-      <!-- Roll Cut row — editable, shows source -->
-      <div class="form-group">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-          <label class="form-label" style="margin:0">Roll Cut</label>
-          <span id="mce-rollcut-source" style="font-size:.65rem;padding:2px 8px;border-radius:10px;font-weight:600"></span>
+
+      <!-- Auto-calculated result -->
+      <div id="mce-result-bar" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="text-align:center;flex:1">
+            <div style="font-size:.65rem;color:#166534;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Production</div>
+            <div id="mce-result-prod" style="font-family:\'Playfair Display\',serif;font-size:1.3rem;color:#166534;font-weight:700">—</div>
+            <div style="font-size:.6rem;color:#4ade80">kg</div>
+          </div>
+          <div style="width:1px;background:#86efac;height:36px"></div>
+          <div style="text-align:center;flex:1">
+            <div style="font-size:.65rem;color:#166534;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Efficiency</div>
+            <div id="mce-result-eff" style="font-family:\'Playfair Display\',serif;font-size:1.3rem;font-weight:700">—</div>
+            <div style="font-size:.6rem;color:#4ade80">%</div>
+          </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
+      </div>
+
+      <!-- Roll Cut (compact, collapsible) -->
+      <details style="margin-bottom:12px">
+        <summary style="font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px">
+          <span>✂️ Roll Cut</span>
+          <span id="mce-rollcut-source" style="font-size:.62rem;padding:2px 7px;border-radius:10px;font-weight:600"></span>
+          <span style="margin-left:auto;font-size:.65rem;color:#ccc">tap to edit ▾</span>
+        </summary>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
           <input type="number" class="form-input" id="mce-rollcut" placeholder="e.g. 214" oninput="calcMceProd()" style="flex:1">
-          <button type="button" id="mce-save-rollcut-btn" class="btn btn-ghost btn-xs" onclick="saveMcRollCutToMachine()" title="Save this Roll Cut to machine permanently" style="white-space:nowrap;flex-shrink:0">💾 Save to MC</button>
+          <button type="button" class="btn btn-ghost btn-xs" onclick="saveMcRollCutToMachine()" style="white-space:nowrap;flex-shrink:0">💾 Save</button>
         </div>
-        <div style="font-size:.68rem;color:var(--muted);margin-top:4px">Edit if Roll Cut changed today. Tap 💾 to save permanently to this machine.</div>
+      </details>
+
+      <!-- Hidden fields still needed for calc -->
+      <input type="hidden" id="mce-prod">
+      <input type="hidden" id="mce-eff">
+
+      <!-- Reason (only shows if needed) -->
+      <div class="form-group" style="margin-bottom:8px">
+        <label style="display:block;font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Reason <span style="font-weight:400;text-transform:none">(optional — if stopped or low)</span></label>
+        <input type="text" class="form-input" id="mce-reason" placeholder="e.g. BOTTOM, YARN BREAK, STOP">
       </div>
-      <div style="background:#f0f9f4;border:1px solid #b7e0c8;border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:.75rem;color:var(--green);display:none" id="mce-calc-preview">
-        <div id="mce-calc-prod-line"></div>
-        <div id="mce-calc-eff-line" style="margin-top:3px"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Production (kg) <span style="font-weight:400;text-transform:none;color:var(--muted)">auto</span></label>
-          <input type="text" class="form-input" id="mce-prod" readonly placeholder="Counter ÷ Roll Cut" style="background:#f5f3ef;font-weight:600">
+
+      <!-- Quality override (collapsed by default) -->
+      <details>
+        <summary style="font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;list-style:none;display:flex;align-items:center;gap:4px">
+          🎨 Change Quality <span style="margin-left:auto;font-size:.65rem;color:#ccc">tap to change ▾</span>
+        </summary>
+        <div style="margin-top:8px">
+          <select class="form-input" id="mce-quality" onchange="onMceQualityChange()">
+            <option value="">— Same as assigned —</option>
+          </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Efficiency % <span style="font-weight:400;text-transform:none;color:var(--muted)">auto</span></label>
-          <input type="text" class="form-input" id="mce-eff" readonly placeholder="Counter ÷ (RPM×60×12)" style="background:#f5f3ef;font-weight:600">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Operator</label>
-        <input type="text" class="form-input" id="mce-operator" placeholder="Operator name">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Reason (if low efficiency)</label>
-        <input type="text" class="form-input" id="mce-reason" placeholder="e.g. BOTTOM, YARN BREAK">
-      </div>
+      </details>
+
+      <!-- Keep these hidden for compatibility -->
+      <input type="hidden" id="mce-operator">
+      <div style="display:none" id="mce-quality-info"><span id="mce-qname"></span><span id="mce-qspecs"></span></div>
+      <div style="display:none" id="mce-calc-preview"><div id="mce-calc-prod-line"></div><div id="mce-calc-eff-line"></div></div>
+
     </div>
-    <div class="modal-foot">
-      <button class="btn btn-danger btn-sm" onclick="clearMcEntry()">Clear</button>
-      <button class="btn btn-ghost btn-sm" onclick="closeOverlay('overlay-mc-entry')">Cancel</button>
-      <button class="btn btn-primary btn-sm" onclick="saveMcEntry()">Save</button>
+    <div class="modal-foot" style="padding:10px 16px;gap:8px;flex-direction:column">
+      <!-- Progress bar -->
+      <div id="mce-progress-wrap" style="width:100%;display:none">
+        <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);margin-bottom:4px">
+          <span id="mce-progress-label">Machine 1 of 100</span>
+          <span id="mce-progress-pct">0%</span>
+        </div>
+        <div style="height:4px;background:#eee;border-radius:2px;overflow:hidden">
+          <div id="mce-progress-bar" style="height:100%;background:#c0392b;border-radius:2px;transition:width .3s;width:0%"></div>
+        </div>
+      </div>
+      <!-- Buttons -->
+      <div style="display:flex;gap:8px;width:100%">
+        <button class="btn btn-danger btn-sm" onclick="clearMcEntry()">Clear</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeOverlay('overlay-mc-entry')">Cancel</button>
+        <button class="btn btn-ghost btn-sm" id="mce-next-btn" style="flex:1;justify-content:center;border-color:rgba(192,57,43,.4);color:#c0392b;display:none" onclick="saveAndNext()">Save & Next →</button>
+        <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center" onclick="saveMcEntry()">✓ Save</button>
+      </div>
     </div>
   </div>
 </div>
 
+
 <!-- Instruction Modal -->
 <div id="overlay-instruction" class="overlay hidden">
-  <div class="modal" style="max-width:400px">
+  <div class="modal" style="max-width:420px">
     <div class="modal-head">
-      <h3>Add Instruction</h3>
+      <h3 id="ins-modal-title">Add Instruction</h3>
       <button class="modal-close" onclick="closeOverlay('overlay-instruction')">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label">Task *</label>
-        <input type="text" class="form-input" id="ins-title" placeholder="e.g. Check machine 45 tension">
+        <label class="form-label">Instruction *</label>
+        <textarea class="form-input" id="ins-title" rows="2" placeholder="e.g. Check tension on MC 45 before starting"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Shift</label>
+          <select class="form-input" id="ins-shift">
+            <option value="BOTH">Both Shifts</option>
+            <option value="DAY">🌅 Day Only</option>
+            <option value="NIGHT">🌙 Night Only</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select class="form-input" id="ins-priority">
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Supervisor</label>
-        <input type="text" class="form-input" id="ins-super" placeholder="Name">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Priority</label>
-        <select class="form-input" id="ins-priority">
-          <option value="normal">Normal</option>
-          <option value="high">High</option>
-          <option value="urgent">Urgent</option>
+        <label class="form-label">Assign To <span style="text-transform:none;font-weight:400;color:var(--muted)">(optional)</span></label>
+        <select class="form-input" id="ins-assign">
+          <option value="">All Supervisors</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Group <span style="text-transform:none;font-weight:400;color:var(--muted)">(optional)</span></label>
+        <select class="form-input" id="ins-group">
+          <option value="">All Groups</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="ins-daily" checked style="width:16px;height:16px;accent-color:#c0392b">
+          Reset daily at 8:00 AM
+        </label>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:3px">If unchecked, this is a one-time task that stays ticked permanently.</div>
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost btn-sm" onclick="closeOverlay('overlay-instruction')">Cancel</button>
       <button class="btn btn-primary btn-sm" onclick="saveInstruction()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tick Instruction Modal (supervisor notes) -->
+<div id="overlay-ins-tick" class="overlay hidden">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <h3>Complete Task</h3>
+      <button class="modal-close" onclick="closeOverlay('overlay-ins-tick')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="ins-tick-task" style="background:var(--gold-pale);border-radius:var(--r);padding:10px 14px;font-weight:600;color:var(--navy);margin-bottom:14px;font-size:.85rem"></div>
+      <div class="form-group">
+        <label class="form-label">Notes <span style="text-transform:none;font-weight:400;color:var(--muted)">(optional)</span></label>
+        <textarea class="form-input" id="ins-tick-notes" rows="3" placeholder="Add any comments, observations or issues..."></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeOverlay('overlay-ins-tick')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmTickInstruction()">✓ Mark Complete</button>
     </div>
   </div>
 </div>
@@ -855,6 +1225,43 @@ select.form-input{cursor:pointer}
       </div>
     </div>
     <div class="modal-body" id="rv-body"></div>
+  </div>
+</div>
+
+<!-- Group Modal -->
+<div id="overlay-group" class="overlay hidden">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <h3 id="grpm-title">Add Group</h3>
+      <button class="modal-close" onclick="closeOverlay('overlay-group')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Group Name *</label>
+        <input type="text" class="form-input" id="grpm-name" placeholder="e.g. Floor 1, Section A">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Machine Numbers * <span style="text-transform:none;font-weight:400;color:var(--muted)">e.g. 1-33 or 1,2,5,10-20</span></label>
+        <input type="text" class="form-input" id="grpm-machines" placeholder="1-33">
+        <div id="grpm-preview" style="font-size:.72rem;color:var(--muted);margin-top:5px"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Colour</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap" id="grpm-colors">
+          <div onclick="selectGroupColor('#c0392b')" data-color="#c0392b" style="width:32px;height:32px;border-radius:50%;background:#c0392b;cursor:pointer;border:3px solid transparent"></div>
+          <div onclick="selectGroupColor('#2980b9')" data-color="#2980b9" style="width:32px;height:32px;border-radius:50%;background:#2980b9;cursor:pointer;border:3px solid transparent"></div>
+          <div onclick="selectGroupColor('#27ae60')" data-color="#27ae60" style="width:32px;height:32px;border-radius:50%;background:#27ae60;cursor:pointer;border:3px solid transparent"></div>
+          <div onclick="selectGroupColor('#8e44ad')" data-color="#8e44ad" style="width:32px;height:32px;border-radius:50%;background:#8e44ad;cursor:pointer;border:3px solid transparent"></div>
+          <div onclick="selectGroupColor('#e67e22')" data-color="#e67e22" style="width:32px;height:32px;border-radius:50%;background:#e67e22;cursor:pointer;border:3px solid transparent"></div>
+          <div onclick="selectGroupColor('#16a085')" data-color="#16a085" style="width:32px;height:32px;border-radius:50%;background:#16a085;cursor:pointer;border:3px solid transparent"></div>
+        </div>
+        <input type="hidden" id="grpm-color" value="#c0392b">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeOverlay('overlay-group')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveGroup()">Save Group</button>
+    </div>
   </div>
 </div>
 
@@ -907,20 +1314,11 @@ select.form-input{cursor:pointer}
 
       <!-- Needle fields -->
       <div id="chg-needle-fields" class="hidden">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Needles Changed (count)</label>
-            <input type="number" class="form-input" id="chg-needle-count" placeholder="e.g. 12">
-          </div>
+        <!-- Needle Type / Size -->
+        <div class="form-row" style="margin-bottom:4px">
           <div class="form-group">
             <label class="form-label">Needle Type / Size</label>
             <input type="text" class="form-input" id="chg-needle-type" placeholder="e.g. 28G Groz">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Needle Butt Pattern</label>
-            <input type="text" class="form-input" id="chg-needle-butt" placeholder="e.g. A, B, AB, C">
           </div>
           <div class="form-group">
             <label class="form-label">Reason for Change</label>
@@ -933,6 +1331,67 @@ select.form-input{cursor:pointer}
             </select>
           </div>
         </div>
+
+        <!-- Butt section -->
+        <div style="background:#fdf4ff;border:1.5px solid #e9d5ff;border-radius:var(--r);padding:12px 14px;margin-bottom:4px">
+          <div style="font-size:.7rem;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">
+            🪡 Needle Butt Changes
+          </div>
+
+          <!-- Column headers -->
+          <div style="display:grid;grid-template-columns:28px 90px 1fr 1fr;gap:8px;align-items:center;margin-bottom:6px;padding:0 2px">
+            <div></div>
+            <div style="font-size:.65rem;font-weight:700;color:#7c3aed;text-transform:uppercase">Butt</div>
+            <div style="font-size:.65rem;font-weight:700;color:#7c3aed;text-transform:uppercase">No. of Needles</div>
+            <div style="font-size:.65rem;font-weight:700;color:#7c3aed;text-transform:uppercase">Date Changed</div>
+          </div>
+
+          <!-- CYLINDER -->
+          <div style="font-size:.72rem;font-weight:700;color:#6d28d9;margin:8px 0 6px;letter-spacing:.04em">⚙️ Cylinder</div>
+          <div style="display:grid;grid-template-columns:28px 90px 1fr 1fr;gap:8px;align-items:center;margin-bottom:7px">
+            <input type="checkbox" id="chg-cyl1-chk" onchange="toggleButtRow('cyl',1)" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer">
+            <div style="font-family:'Playfair Display',serif;font-weight:700;color:#6d28d9;font-size:.88rem">Cyl Butt 1</div>
+            <input type="number" id="chg-cyl1-count" class="form-input" placeholder="e.g. 12" disabled style="opacity:.4;transition:opacity .2s">
+            <input type="date"   id="chg-cyl1-date"  class="form-input" disabled style="opacity:.4;transition:opacity .2s">
+          </div>
+          <div style="display:grid;grid-template-columns:28px 90px 1fr 1fr;gap:8px;align-items:center;margin-bottom:7px">
+            <input type="checkbox" id="chg-cyl2-chk" onchange="toggleButtRow('cyl',2)" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer">
+            <div style="font-family:'Playfair Display',serif;font-weight:700;color:#6d28d9;font-size:.88rem">Cyl Butt 2</div>
+            <input type="number" id="chg-cyl2-count" class="form-input" placeholder="e.g. 12" disabled style="opacity:.4;transition:opacity .2s">
+            <input type="date"   id="chg-cyl2-date"  class="form-input" disabled style="opacity:.4;transition:opacity .2s">
+          </div>
+          <div style="display:grid;grid-template-columns:28px 90px 1fr 1fr;gap:8px;align-items:center;margin-bottom:7px">
+            <input type="checkbox" id="chg-cyl3-chk" onchange="toggleButtRow('cyl',3)" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer">
+            <div style="font-family:'Playfair Display',serif;font-weight:700;color:#6d28d9;font-size:.88rem">Cyl Butt 3</div>
+            <input type="number" id="chg-cyl3-count" class="form-input" placeholder="e.g. 12" disabled style="opacity:.4;transition:opacity .2s">
+            <input type="date"   id="chg-cyl3-date"  class="form-input" disabled style="opacity:.4;transition:opacity .2s">
+          </div>
+          <div style="display:grid;grid-template-columns:28px 90px 1fr 1fr;gap:8px;align-items:center;margin-bottom:7px">
+            <input type="checkbox" id="chg-cyl4-chk" onchange="toggleButtRow('cyl',4)" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer">
+            <div style="font-family:'Playfair Display',serif;font-weight:700;color:#6d28d9;font-size:.88rem">Cyl Butt 4</div>
+            <input type="number" id="chg-cyl4-count" class="form-input" placeholder="e.g. 12" disabled style="opacity:.4;transition:opacity .2s">
+            <input type="date"   id="chg-cyl4-date"  class="form-input" disabled style="opacity:.4;transition:opacity .2s">
+          </div>
+
+          <!-- DIAL -->
+          <div style="font-size:.72rem;font-weight:700;color:#6d28d9;margin:10px 0 6px;letter-spacing:.04em;border-top:1px solid #e9d5ff;padding-top:10px">🔘 Dial</div>
+          <div style="display:grid;grid-template-columns:28px 90px 1fr 1fr;gap:8px;align-items:center;margin-bottom:7px">
+            <input type="checkbox" id="chg-dial1-chk" onchange="toggleButtRow('dial',1)" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer">
+            <div style="font-family:'Playfair Display',serif;font-weight:700;color:#6d28d9;font-size:.88rem">Dial Butt 1</div>
+            <input type="number" id="chg-dial1-count" class="form-input" placeholder="e.g. 12" disabled style="opacity:.4;transition:opacity .2s">
+            <input type="date"   id="chg-dial1-date"  class="form-input" disabled style="opacity:.4;transition:opacity .2s">
+          </div>
+          <div style="display:grid;grid-template-columns:28px 90px 1fr 1fr;gap:8px;align-items:center">
+            <input type="checkbox" id="chg-dial2-chk" onchange="toggleButtRow('dial',2)" style="width:18px;height:18px;accent-color:#7c3aed;cursor:pointer">
+            <div style="font-family:'Playfair Display',serif;font-weight:700;color:#6d28d9;font-size:.88rem">Dial Butt 2</div>
+            <input type="number" id="chg-dial2-count" class="form-input" placeholder="e.g. 12" disabled style="opacity:.4;transition:opacity .2s">
+            <input type="date"   id="chg-dial2-date"  class="form-input" disabled style="opacity:.4;transition:opacity .2s">
+          </div>
+        </div>
+
+        <!-- Legacy hidden fields -->
+        <input type="hidden" id="chg-needle-count">
+        <input type="hidden" id="chg-needle-butt">
       </div>
 
       <!-- Cam fields -->
@@ -1052,22 +1511,53 @@ select.form-input{cursor:pointer}
   </div>
 </div>
 
-<!-- Machine Status Edit Modal -->
+<!-- Needle Set Log Modal (full cylinder/dial replacement) -->
 <div id="overlay-mc-status" class="overlay hidden">
-  <div class="modal" style="max-width:400px">
+  <div class="modal" style="max-width:420px">
     <div class="modal-head">
-      <h3 id="mcs-title">Edit Machine Status</h3>
+      <h3 id="mcs-title">Log Full Needle Set</h3>
       <button class="modal-close" onclick="closeOverlay('overlay-mc-status')">✕</button>
     </div>
     <div class="modal-body">
       <div id="mcs-current-info" style="background:var(--gold-pale);border-radius:var(--r);padding:8px 12px;font-size:.8rem;color:var(--navy);margin-bottom:14px"></div>
+
+      <!-- Cylinder -->
+      <div style="background:#f5f3ff;border-radius:var(--r);padding:12px;margin-bottom:12px">
+        <div style="font-size:.72rem;font-weight:700;color:#6d28d9;margin-bottom:8px">⚙️ Cylinder — Full Needle Set</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date Changed</label>
+            <input type="date" class="form-input" id="mcs-cyl-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total Needles</label>
+            <input type="number" class="form-input" id="mcs-cyl-count" placeholder="e.g. 90">
+          </div>
+        </div>
+      </div>
+
+      <!-- Dial -->
+      <div style="background:#f5f3ff;border-radius:var(--r);padding:12px;margin-bottom:12px">
+        <div style="font-size:.72rem;font-weight:700;color:#6d28d9;margin-bottom:8px">🔘 Dial — Full Needle Set</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date Changed</label>
+            <input type="date" class="form-input" id="mcs-dial-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total Needles</label>
+            <input type="number" class="form-input" id="mcs-dial-count" placeholder="e.g. 90">
+          </div>
+        </div>
+      </div>
+
       <div class="form-group">
-        <label class="form-label">Needle Set Date</label>
-        <input type="date" class="form-input" id="mcs-needle-date">
+        <label class="form-label">Remarks <span style="text-transform:none;font-weight:400;color:var(--muted)">e.g. needles from MC 45</span></label>
+        <input type="text" class="form-input" id="mcs-remarks" placeholder="Optional — source of needles, condition, etc.">
       </div>
       <div class="form-group">
-        <label class="form-label">Needle Butt Pattern</label>
-        <input type="text" class="form-input" id="mcs-needle-butt" placeholder="e.g. A, B, AB, C">
+        <label class="form-label">Done By</label>
+        <input type="text" class="form-input" id="mcs-by" placeholder="Fitter name">
       </div>
     </div>
     <div class="modal-foot">
@@ -1262,7 +1752,7 @@ const LS = {
 };
 
 // ── Real-time Firebase listener — syncs all data across devices ──
-const COLLECTIONS = ['qualities','machines','reports','instructions','changes','machineStatus','password','users','ownerPassword'];
+const COLLECTIONS = ['qualities','machines','reports','instructions','changes','machineStatus','password','users','ownerPassword','machineGroups','yarns'];
 function startFirebaseSync(){
   if(!firebaseReady || !db){ console.warn('Sync skipped — local mode'); return; }
   COLLECTIONS.forEach(key => {
@@ -1305,6 +1795,7 @@ async function initStores(){
         else if(key==='changes')  defaultVal = LS.get('changes')  || [];
         else if(key==='machineStatus') defaultVal = LS.get('machineStatus') || {};
         else if(key==='password') defaultVal = LS.get('password') || '4321';
+        else if(key==='yarns')    defaultVal = LS.get('yarns')    || [];
         else defaultVal = null;
         if(defaultVal !== null){
           CACHE[key] = defaultVal;
@@ -1354,7 +1845,9 @@ let currentShift = autoShift();
 let currentEntry = {}; // { mcNum: { quality, rpm, counter, prod, eff, operator, reason } }
 let editingQualityId = null;
 let editingMcNum = null;
-let editingMcEntryNum = null;
+let editingMcEntryNum  = null;
+let editingMcSequence  = false;
+let editingMcList      = null; // custom list for group sequential entry
 let viewingReport = null;
 
 function todayStr(){
@@ -1395,9 +1888,27 @@ else updateClock();
 // ═══════════════════════════════════════════════
 //  NAVIGATION
 // ═══════════════════════════════════════════════
-const PAGE_TITLES = {entry:'Shift Entry',reports:'Efficiency Reports',qualities:'Quality Master',machines:'Machine Setup',changes:'Machine Changes',dashboard:'Dashboard',instructions:'Daily Instructions',users:'User Management'};
+const PAGE_TITLES = {entry:'Efficiency Report',reports:'Efficiency Reports',qualities:'Quality Master',machines:'Machine Setup',changes:'Machine Changes',dashboard:'Dashboard',instructions:'Daily Instructions',users:'User Management',viewreport:'View Report'};
 
 function navigate(page){
+  // Always show shift picker when navigating to entry page
+  if(page === 'entry'){
+    openShiftPickerForEntry();
+    return;
+  }
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el = document.getElementById('page-'+page);
+  if(el) el.classList.add('active');
+  document.querySelectorAll('.bn-item,.sb-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll(`[data-page="${page}"]`).forEach(b=>b.classList.add('active'));
+  const tb = document.getElementById('page-title-bar');
+  if(tb) tb.textContent = PAGE_TITLES[page]||page;
+  renderPage(page);
+}
+
+function navigateDirect(page){
+  // Internal navigation — skips shift picker intercept
   currentPage = page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const el = document.getElementById('page-'+page);
@@ -1423,8 +1934,9 @@ function renderPage(p){
   if(p==='machines')     renderMachineSetup();
   if(p==='changes')      renderChanges();
   if(p==='dashboard')    renderDashboard();
-  if(p==='instructions') renderInstructions();
+  if(p==='instructions'){ checkDailyReset(); renderInstructions(); }
   if(p==='users')        renderUsers();
+  if(p==='viewreport')   renderViewReport();
 }
 
 // ═══════════════════════════════════════════════
@@ -1474,19 +1986,18 @@ function openSettings(){
 //  SHIFT ENTRY PAGE
 // ═══════════════════════════════════════════════
 function renderEntryPage(){
-  // Load existing report if exists
   const reports = LS.get('reports')||[];
   const existing = reports.find(r=>r.date===currentShiftDate && r.shift===currentShift);
   if(existing) currentEntry = existing.entry ? JSON.parse(JSON.stringify(existing.entry)) : {};
-
   updateEntryHeader();
+  renderGroupTabs();
   renderMcList();
 }
 
 function updateEntryHeader(){
   const dateObj = new Date(currentShiftDate+'T12:00:00');
   const dateStr = dateObj.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
-  document.getElementById('entry-heading').textContent = (currentShift==='DAY'?'🌅 Day':'🌙 Night')+' Shift Entry';
+  document.getElementById('entry-heading').textContent = (currentShift==='DAY'?'🌅 Day':'🌙 Night')+' Efficiency Report';
   document.getElementById('entry-shift-badge').textContent = currentShift==='DAY'?'🌅 Day Shift (8AM–8PM)':'🌙 Night Shift (8PM–8AM)';
   document.getElementById('entry-date-badge').textContent = '📅 '+dateStr;
   updateFilledBadge();
@@ -1495,71 +2006,269 @@ function updateEntryHeader(){
 function updateFilledBadge(){
   const filled = Object.keys(currentEntry).filter(k=>{ const e=currentEntry[k]; return e&&(e.prod||e.counter||e.rpm); }).length;
   document.getElementById('entry-filled-badge').textContent = `✅ ${filled} / 100 filled`;
+  renderGroupTabs(); // refresh group counts
 }
 
-function renderMcList(filter){
-  filter = filter || document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
-  const machines = LS.get('machines')||[];
-  const qualities = LS.get('qualities')||[];
+// ── Active group filter state ──
+let activeGroupFilter = 'all'; // 'all' or group id
+
+function renderGroupTabs(){
+  const el = document.getElementById('entry-group-tabs');
+  if(!el) return;
+  const groups = getMachineGroups();
+
+  // Count filled per group
+  const tabsHtml = [
+    // "All" tab
+    `<button onclick="setGroupFilter('all')" id="gtab-all"
+      style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:20px;font-size:.75rem;font-weight:700;cursor:pointer;border:2px solid ${activeGroupFilter==='all'?'#1a1a1a':'#e0e0e0'};background:${activeGroupFilter==='all'?'#1a1a1a':'#fff'};color:${activeGroupFilter==='all'?'#fff':'#555'};transition:all .15s">
+      All
+    </button>`,
+    ...groups.map(g=>{
+      const mcNums  = parseMachineRange(g.machines);
+      const filled  = mcNums.filter(n=>{ const e=currentEntry[n]; return e&&(e.counter||e.prod||e.reason==='STOP'); }).length;
+      const isActive = activeGroupFilter === g.id;
+      return `<button onclick="setGroupFilter('${g.id}')" id="gtab-${g.id}"
+        style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:20px;font-size:.75rem;font-weight:700;cursor:pointer;border:2px solid ${isActive?g.color:'#e0e0e0'};background:${isActive?g.color:'#fff'};color:${isActive?'#fff':'#555'};transition:all .15s">
+        ${g.name}
+        <span style="background:${isActive?'rgba(255,255,255,.25)':'rgba(0,0,0,.08)'};border-radius:10px;padding:1px 7px;font-size:.68rem">${filled}/${mcNums.length}</span>
+      </button>`;
+    })
+  ].join('');
+
+  el.innerHTML = tabsHtml;
+}
+
+function setGroupFilter(id){
+  activeGroupFilter = id;
+  renderGroupTabs();
+  renderMcList();
+  // Scroll to top of list
+  document.getElementById('mc-entry-list')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function getDefaultGroups(){
+  return [
+    { id:'grp_1', name:'Group A', machines:'1-44',  color:'#c0392b' },
+    { id:'grp_2', name:'Group B', machines:'45-80', color:'#2980b9' },
+    { id:'grp_3', name:'Group C', machines:'81-100',color:'#27ae60' },
+  ];
+}
+
+function getMachineGroups(){
+  const stored = LS.get('machineGroups');
+  // Reset if still using old 1-33/34-66/67-100 defaults
+  if(stored && stored.length && stored[0].machines === '1-33'){
+    const fresh = getDefaultGroups();
+    LS.set('machineGroups', fresh);
+    return fresh;
+  }
+  if(stored && stored.length) return stored;
+  const defaults = getDefaultGroups();
+  LS.set('machineGroups', defaults);
+  return defaults;
+}
+
+// Parse "1-33" or "1,2,3,5-10" into array of machine numbers
+function parseMachineRange(str){
+  const nums = [];
+  String(str).split(',').forEach(part=>{
+    part = part.trim();
+    if(part.includes('-')){
+      const [a,b] = part.split('-').map(Number);
+      for(let i=a; i<=b; i++) nums.push(i);
+    } else if(Number(part)){
+      nums.push(Number(part));
+    }
+  });
+  return nums;
+}
+
+function renderMcList(){
   const list = document.getElementById('mc-entry-list');
   if(!list) return;
 
-  let mcs = machines.filter(m=>m.active!==false);
+  const machines  = LS.get('machines')||[];
+  const qualities = LS.get('qualities')||[];
+  let   groups    = getMachineGroups();
 
-  if(filter==='1-25')   mcs = mcs.filter(m=>m.num>=1&&m.num<=25);
-  if(filter==='26-50')  mcs = mcs.filter(m=>m.num>=26&&m.num<=50);
-  if(filter==='51-75')  mcs = mcs.filter(m=>m.num>=51&&m.num<=75);
-  if(filter==='76-100') mcs = mcs.filter(m=>m.num>=76&&m.num<=100);
-  if(filter==='filled') mcs = mcs.filter(m=>{ const e=currentEntry[m.num]; return e&&(e.prod||e.counter); });
-  if(filter==='empty')  mcs = mcs.filter(m=>{ const e=currentEntry[m.num]; return !e||(!e.prod&&!e.counter); });
+  // Apply active group filter
+  if(activeGroupFilter !== 'all'){
+    groups = groups.filter(g => g.id === activeGroupFilter);
+  }
 
-  if(!mcs.length){ list.innerHTML='<div class="empty"><div class="empty-icon">🔍</div>No machines match this filter.</div>'; return; }
+  // Build map of machine num → machine obj
+  const mcMap = {};
+  machines.forEach(m=>{ mcMap[m.num]=m; });
 
-  list.innerHTML = mcs.map(mc=>{
-    const entry = currentEntry[mc.num]||{};
-    const qualityId = entry.quality || mc.quality;
-    const q = qualities.find(q=>q.id===qualityId);
-    const op = entry.operator || mc.operator || '—';
-    const filled = !!(entry.prod||entry.counter||entry.rpm);
-    const eff = entry.eff ? parseFloat(entry.eff) : null;
-    let effBadge = '';
-    if(eff!==null) effBadge = `<span class="badge ${eff>=80?'badge-green':eff>=60?'badge-amber':'badge-red'}">${eff.toFixed(1)}%</span>`;
+  let html = '';
 
-    return `<div class="mc-row ${filled?'':'inactive'}" id="mc-row-${mc.num}">
-      <div class="mc-row-head" onclick="openMcEntry(${mc.num})">
+  // ── Ungrouped machines (not in any group) ──
+  const allGroupedNums = new Set(groups.flatMap(g=>parseMachineRange(g.machines)));
+  const ungrouped = machines.filter(m=>m.active!==false && !allGroupedNums.has(m.num));
+
+  groups.forEach(grp=>{
+    const mcNums = parseMachineRange(grp.machines)
+      .filter(n=>{ const m=mcMap[n]; return m && m.active!==false; });
+
+    if(!mcNums.length) return;
+
+    // Calculate group progress
+    const filled  = mcNums.filter(n=>{ const e=currentEntry[n]; return e&&(e.counter||e.prod||e.reason==='STOP'); }).length;
+    const stopped = mcNums.filter(n=>{ const e=currentEntry[n]; return e&&e.reason==='STOP'; }).length;
+    const pct     = Math.round((filled/mcNums.length)*100);
+
+    const rows = mcNums.map(num=>{
+      const mc = mcMap[num]||{ num };
+      return buildMcRow(mc, qualities);
+    }).join('');
+
+    html += `
+    <div class="mc-group collapsed" id="grp-${grp.id}">
+      <div class="mc-group-header" style="background:${grp.color}" onclick="toggleGroup('grp-${grp.id}')">
         <div>
-          <div class="mc-num">MC #${mc.num}</div>
-          <div class="mc-quality-tag">${q?q.name:(mc.quality?'Loading...':'No quality assigned')} · <span class="op-tag">${op}</span></div>
+          <div class="mc-group-title">${grp.name}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:#fff;margin-top:1px">MC ${grp.machines}</div>
         </div>
-        <div class="mc-row-summary">
-          ${entry.prod ? `<span class="badge badge-green">⚖️ ${entry.prod} kg</span>` : ''}
-          ${entry.rpm ? `<span class="badge badge-navy">⚡ ${entry.rpm} RPM</span>` : ''}
-          ${effBadge}
-          ${entry.reason ? `<span class="badge badge-red" style="font-size:.62rem">${entry.reason}</span>` : ''}
-          <span class="mc-row-chevron">▼</span>
+        <div class="mc-group-meta">
+          <span class="mc-group-progress">${filled}/${mcNums.length} filled${stopped?' · '+stopped+' stopped':''}</span>
+          <button onclick="event.stopPropagation();startGroupEntry('${grp.id}')"
+            style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);color:#fff;border-radius:20px;padding:4px 12px;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap">
+            ▶ Enter Data
+          </button>
+          <span class="mc-group-chevron">▾</span>
+        </div>
+      </div>
+      <div class="mc-group-bar" style="background:rgba(0,0,0,.1)">
+        <div class="mc-group-bar-fill" style="width:${pct}%;background:${grp.color};opacity:.4"></div>
+      </div>
+      <div class="mc-group-body" style="display:none">
+        <div style="overflow-x:auto">
+          <table class="mc-table">
+            <thead class="mc-table-head">
+              <tr>
+                <th>MC #</th><th>Quality</th><th>RPM</th><th>Counter</th>
+                <th>Prod (kg)</th><th>Eff %</th><th>Reason</th><th>Operator</th><th></th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
         </div>
       </div>
     </div>`;
-  }).join('');
+  });
+
+  // Ungrouped machines
+  if(ungrouped.length){
+    const rows = ungrouped.map(mc=>buildMcRow(mc, qualities)).join('');
+    const filled = ungrouped.filter(m=>{ const e=currentEntry[m.num]; return e&&(e.counter||e.prod||e.reason==='STOP'); }).length;
+    html += `
+    <div class="mc-group collapsed" id="grp-ungrouped">
+      <div class="mc-group-header" style="background:#666" onclick="toggleGroup('grp-ungrouped')">
+        <div>
+          <div class="mc-group-title">Other Machines</div>
+          <div style="font-size:.68rem;color:rgba(255,255,255,.7);margin-top:2px">Not assigned to a group</div>
+        </div>
+        <div class="mc-group-meta">
+          <span class="mc-group-progress">${filled}/${ungrouped.length} filled</span>
+          <span class="mc-group-chevron">▾</span>
+        </div>
+      </div>
+      <div class="mc-group-body" style="display:none">
+        <div style="overflow-x:auto">
+          <table class="mc-table">
+            <thead class="mc-table-head"><tr>
+              <th>MC #</th><th>Quality</th><th>RPM</th><th>Counter</th>
+              <th>Prod (kg)</th><th>Eff %</th><th>Reason</th><th>Operator</th><th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  list.innerHTML = html || '<div class="empty"><div class="empty-icon">⚙️</div>No machines set up yet. Go to Machine Setup to add machines.</div>';
 }
 
-// Filter buttons
-document.getElementById('mc-filter-bar')?.addEventListener('click', e=>{
-  const btn = e.target.closest('.filter-btn');
-  if(!btn) return;
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  renderMcList(btn.dataset.filter);
-});
+function buildMcRow(mc, qualities){
+  const e       = currentEntry[mc.num]||{};
+  const q       = qualities.find(q=>q.id===(e.quality||mc.quality));
+  const stopped = e.reason==='STOP';
+  const filled  = !stopped && !!(e.counter||e.prod);
+  const eff     = e.eff ? parseFloat(e.eff) : null;
+
+  let effCell = '<span style="color:#ccc">—</span>';
+  if(stopped){
+    effCell = '<span class="mc-eff-cell" style="background:#fdecea;color:#c0392b">STOP</span>';
+  } else if(eff!==null){
+    const bg  = eff>=80?'#dcfce7':eff>=60?'#fef9c3':'#fee2e2';
+    const col = eff>=80?'#166534':eff>=60?'#854d0e':'#991b1b';
+    effCell = `<span class="mc-eff-cell" style="background:${bg};color:${col}">${eff.toFixed(1)}%</span>`;
+  }
+
+  const prodCell    = e.prod>0 ? `<b>${parseFloat(e.prod).toFixed(2)}</b>` : (stopped?'—':'<span style="color:#ccc">—</span>');
+  const counterCell = e.counter>0 ? `<span style="font-weight:500">${e.counter}</span>` : (stopped?'—':'<span style="color:#ccc">—</span>');
+  const rpmCell     = (e.rpm||mc.rpm) ? `<span style="color:var(--muted)">${e.rpm||mc.rpm}</span>` : '<span style="color:#ccc">—</span>';
+  const reasonCell  = (e.reason && e.reason!=='STOP') ? `<span style="color:var(--amber);font-size:.72rem">${e.reason}</span>` : '<span style="color:#ccc">—</span>';
+
+  return `<tr class="mc-row-r ${filled?'filled':''} ${stopped?'stopped':''}" id="mc-row-${mc.num}">
+    <td style="font-family:'Playfair Display',serif;font-weight:700;font-size:1.3rem;color:var(--navy);min-width:48px">${mc.num}</td>
+    <td>${q?q.name:'<span style="color:#ccc">—</span>'}</td>
+    <td>${rpmCell}</td>
+    <td>${counterCell}</td>
+    <td>${prodCell}</td>
+    <td>${effCell}</td>
+    <td>${reasonCell}</td>
+    <td style="font-size:.72rem;color:var(--muted)">${mc.operator||'—'}</td>
+    <td onclick="event.stopPropagation()">
+      <button class="btn btn-primary btn-xs" onclick="openMcEntry(${mc.num})" style="white-space:nowrap;padding:6px 12px;font-size:.72rem">
+        Enter Data
+      </button>
+    </td>
+  </tr>`;
+}
+
+function toggleGroup(grpId){
+  const grp  = document.getElementById(grpId);
+  const body = grp?.querySelector('.mc-group-body');
+  if(!body) return;
+  const isCollapsed = grp.classList.contains('collapsed');
+  grp.classList.toggle('collapsed', !isCollapsed);
+  body.style.display = isCollapsed ? '' : 'none';
+}
+
+function startGroupEntry(grpId){
+  const groups = getMachineGroups();
+  const grp    = groups.find(g=>g.id===grpId);
+  if(!grp) return;
+  const machines  = LS.get('machines')||[];
+  const mcNums    = parseMachineRange(grp.machines)
+    .filter(n=>{ const m=machines.find(m=>m.num===n); return m&&m.active!==false; });
+  if(!mcNums.length){ toast('No active machines in this group'); return; }
+  // Start from first unfilled, or first in group
+  const firstUnfilled = mcNums.find(n=>{ const e=currentEntry[n]; return !e||(!e.counter&&!e.prod&&e.reason!=='STOP'); });
+  openMcEntry(firstUnfilled||mcNums[0], true, mcNums);
+}
+
+function startSequentialEntry(){
+  const machines  = LS.get('machines')||[];
+  const activeMcs = machines.filter(m=>m.active!==false).map(m=>m.num).sort((a,b)=>a-b);
+  if(!activeMcs.length){ toast('No active machines'); return; }
+  const firstUnfilled = activeMcs.find(n=>{ const e=currentEntry[n]; return !e||(!e.counter&&!e.prod&&e.reason!=='STOP'); });
+  openMcEntry(firstUnfilled||activeMcs[0], true, activeMcs);
+}
 
 // ═══════════════════════════════════════════════
 //  MACHINE ENTRY MODAL
 // ═══════════════════════════════════════════════
-function openMcEntry(mcNum){
+function openMcEntry(mcNum, sequenceMode=false, mcList=null){
   editingMcEntryNum = mcNum;
-  const machines = LS.get('machines')||[];
+  editingMcSequence = sequenceMode;
+  editingMcList     = mcList; // store for saveAndNext
+
+  const machines  = LS.get('machines')||[];
   const qualities = LS.get('qualities')||[];
-  const mc = machines.find(m=>m.num===mcNum)||{};
+  const mc    = machines.find(m=>m.num===mcNum)||{};
   const entry = currentEntry[mcNum]||{};
 
   // Populate quality dropdown
@@ -1570,20 +2279,90 @@ function openMcEntry(mcNum){
   const qualityId = entry.quality || mc.quality || '';
   qSel.value = qualityId;
 
+  const q = qualities.find(q=>q.id===qualityId);
+
+  // Header
   document.getElementById('mce-title').textContent = `Machine #${mcNum}`;
-  document.getElementById('mce-rpm').value      = entry.rpm      || mc.rpm      || '';
-  document.getElementById('mce-counter').value  = entry.counter  || '';
-  document.getElementById('mce-prod').value     = entry.prod     || '';
-  document.getElementById('mce-eff').value      = entry.eff ? entry.eff+'%' : '';
-  document.getElementById('mce-operator').value = entry.operator || mc.operator || '';
-  document.getElementById('mce-reason').value   = entry.reason   || '';
+  const badge = document.getElementById('mce-quality-badge');
+  if(badge) badge.textContent = q ? `${q.name} · ${mc.operator||''}` : (mc.operator||'No quality assigned');
 
-  // Roll Cut priority: today's entry value → machine override → quality default
+  // Main inputs
+  document.getElementById('mce-rpm').value     = entry.rpm     || mc.rpm || '';
+  document.getElementById('mce-counter').value = entry.counter || '';
+  document.getElementById('mce-reason').value  = entry.reason  || '';
+  document.getElementById('mce-prod').value    = entry.prod    || '';
+  document.getElementById('mce-eff').value     = entry.eff     || '';
+
+  // Roll Cut
   setRollCutField(mcNum, qualityId, entry.rollCutUsed);
-
-  showQualityInfo(qualityId, qualities);
   calcMceProd();
+
+  // ── Progress & Next button ──
+  const nextBtn      = document.getElementById('mce-next-btn');
+  const progressWrap = document.getElementById('mce-progress-wrap');
+  const activeMcs    = (mcList || machines.filter(m=>m.active!==false).map(m=>m.num)).sort((a,b)=>a-b);
+  const totalActive  = activeMcs.length;
+  const currentIdx   = activeMcs.indexOf(mcNum);
+  const filledCount  = activeMcs.filter(n=>{ const e=currentEntry[n]; return e&&(e.counter||e.prod||e.reason==='STOP'); }).length;
+
+  if(sequenceMode && nextBtn){
+    nextBtn.style.display = 'flex';
+    // Check if there's a next machine
+    const nextMc = activeMcs[currentIdx + 1];
+    nextBtn.textContent = nextMc ? `Save & Next → MC #${nextMc}` : 'Save & Finish ✓';
+    nextBtn.style.background = nextMc ? '' : 'linear-gradient(135deg,#22c55e,#16a34a)';
+    nextBtn.style.color      = nextMc ? '' : '#fff';
+    nextBtn.style.border     = nextMc ? '' : 'none';
+  } else if(nextBtn){
+    nextBtn.style.display = 'none';
+  }
+
+  if(progressWrap){
+    progressWrap.style.display = sequenceMode ? 'block' : 'none';
+    if(sequenceMode){
+      const pct = totalActive > 0 ? Math.round((filledCount / totalActive) * 100) : 0;
+      document.getElementById('mce-progress-label').textContent =
+        `Machine ${currentIdx+1} of ${totalActive}`;
+      document.getElementById('mce-progress-pct').textContent = `${pct}% filled`;
+      document.getElementById('mce-progress-bar').style.width = pct + '%';
+    }
+  }
+
   openOverlay('overlay-mc-entry');
+  setTimeout(()=>{ document.getElementById('mce-counter').select(); }, 200);
+}
+
+function startSequentialEntry(){
+  // Start from first unfilled active machine, or MC 1 if all filled
+  const machines   = LS.get('machines')||[];
+  const activeMcs  = machines.filter(m=>m.active!==false).map(m=>m.num).sort((a,b)=>a-b);
+  if(!activeMcs.length){ toast('No active machines set up'); return; }
+
+  // Find first machine not yet filled
+  const firstUnfilled = activeMcs.find(mc => !currentEntry[mc] || (!currentEntry[mc].counter && !currentEntry[mc].reason));
+  const startFrom = firstUnfilled || activeMcs[0];
+  openMcEntry(startFrom, true);
+}
+
+function saveAndNext(){
+  const mcNum = editingMcEntryNum;
+  if(!mcNum) return;
+
+  _doSaveMcEntry(mcNum);
+  updateFilledBadge();
+
+  const machines   = LS.get('machines')||[];
+  const activeMcs  = (editingMcList || machines.filter(m=>m.active!==false).map(m=>m.num)).sort((a,b)=>a-b);
+  const currentIdx = activeMcs.indexOf(mcNum);
+  const nextMc     = activeMcs[currentIdx + 1];
+
+  if(nextMc){
+    setTimeout(()=>{ openMcEntry(nextMc, true, editingMcList); }, 60);
+  } else {
+    closeOverlay('overlay-mc-entry');
+    renderMcList();
+    toast('✅ All machines in this group done! Tap 💾 Save Report when ready.');
+  }
 }
 
 // Set the roll cut field and source badge
@@ -1664,90 +2443,88 @@ function onMceQualityChange(){
 
 function calcMceProd(){
   const counter = parseFloat(document.getElementById('mce-counter').value) || 0;
-  const rpm     = parseFloat(document.getElementById('mce-rpm').value) || 0;
+  const rpm     = parseFloat(document.getElementById('mce-rpm').value)     || 0;
   const rollCut = parseFloat(document.getElementById('mce-rollcut').value) || 0;
 
-  const prodEl   = document.getElementById('mce-prod');
-  const effEl    = document.getElementById('mce-eff');
-  const preview  = document.getElementById('mce-calc-preview');
-  const prodLine = document.getElementById('mce-calc-prod-line');
-  const effLine  = document.getElementById('mce-calc-eff-line');
+  const resultBar  = document.getElementById('mce-result-bar');
+  const resultProd = document.getElementById('mce-result-prod');
+  const resultEff  = document.getElementById('mce-result-eff');
+
+  let prod = 0, eff = 0;
 
   if(counter > 0 && rollCut > 0){
-    const prod = counter / rollCut;
-    prodEl.value = prod.toFixed(3) + ' kg';
-    prodLine.textContent = `⚖️ Prod = ${counter} ÷ ${rollCut} = ${prod.toFixed(3)} kg`;
+    prod = counter / rollCut;
+    if(resultProd) resultProd.textContent = prod.toFixed(2);
   } else {
-    prodEl.value = rollCut ? '—' : '⚠ Enter Roll Cut';
-    prodLine.textContent = rollCut ? '' : '⚠ Roll Cut missing — enter above';
+    if(resultProd) resultProd.textContent = '—';
   }
 
   if(counter > 0 && rpm > 0){
     const theoretical = rpm * 60 * 12;
-    const eff = (counter / theoretical) * 100;
-    effEl.value = eff.toFixed(2) + '%';
-    effLine.textContent = `⚡ Eff = ${counter} ÷ (${rpm} × 60 × 12) = ${eff.toFixed(2)}%`;
+    eff = (counter / theoretical) * 100;
+    const effColor = eff >= 80 ? '#166534' : eff >= 60 ? '#854d0e' : '#991b1b';
+    if(resultEff){ resultEff.textContent = eff.toFixed(1); resultEff.style.color = effColor; }
   } else {
-    effEl.value = '';
-    effLine.textContent = '';
+    if(resultEff){ resultEff.textContent = '—'; resultEff.style.color = '#166534'; }
   }
 
-  preview.style.display = (counter > 0) ? 'block' : 'none';
+  // Show result bar when any value entered
+  if(resultBar) resultBar.style.display = (counter > 0 || rpm > 0) ? 'block' : 'none';
+
+  // Update hidden fields for save
+  const prodEl = document.getElementById('mce-prod');
+  const effEl  = document.getElementById('mce-eff');
+  if(prodEl) prodEl.value = prod > 0 ? prod.toFixed(3) : '';
+  if(effEl)  effEl.value  = eff  > 0 ? eff.toFixed(2)  : '';
+
+  // Legacy preview (hidden but still updated)
+  const prodLine = document.getElementById('mce-calc-prod-line');
+  const effLine  = document.getElementById('mce-calc-eff-line');
+  if(prodLine) prodLine.textContent = prod > 0 ? `Prod = ${counter} ÷ ${rollCut} = ${prod.toFixed(3)} kg` : '';
+  if(effLine)  effLine.textContent  = eff  > 0 ? `Eff = ${counter} ÷ (${rpm}×60×12) = ${eff.toFixed(2)}%` : '';
 }
 
 // RPM also triggers recalc
 document.getElementById('mce-rpm')?.addEventListener('input', calcMceProd);
 
-function saveMcEntry(){
-  const mcNum = editingMcEntryNum;
-  if(!mcNum) return;
+function _doSaveMcEntry(mcNum){
+  const machines  = LS.get('machines')||[];
+  const qualities = LS.get('qualities')||[];
+  const mc = machines.find(m=>m.num===mcNum)||{};
 
   const qSel = document.getElementById('mce-quality');
-  const qualityId = qSel.value;
-  const machines = LS.get('machines')||[];
-  const mc = machines.find(m=>m.num===mcNum)||{};
-  const effectiveQuality = qualityId || mc.quality || '';
+  const effectiveQuality = qSel.value || mc.quality || '';
+  const q = qualities.find(q=>q.id===effectiveQuality);
 
   const rpm     = parseFloat(document.getElementById('mce-rpm').value)||0;
   const counter = parseFloat(document.getElementById('mce-counter').value)||0;
   const rollCut = parseFloat(document.getElementById('mce-rollcut').value)||0;
+  const reason  = (document.getElementById('mce-reason').value||'').trim().toUpperCase();
 
-  // Detect if roll cut was manually changed vs the stored default
-  const qualities = LS.get('qualities')||[];
-  const q = qualities.find(q=>q.id===effectiveQuality);
-  const qualityDefault = q ? parseFloat(q.rollCut)||0 : 0;
-  const machineOverride = mc.rollCutOverride ? parseFloat(mc.rollCutOverride)||0 : 0;
-  const expectedRC = machineOverride || qualityDefault;
-  const rollCutWasManuallyChanged = rollCut > 0 && rollCut !== expectedRC;
-
-  // Production = Counter ÷ Roll Cut
   const prod = (counter > 0 && rollCut > 0) ? parseFloat((counter / rollCut).toFixed(3)) : 0;
-
-  // Efficiency = Counter ÷ (RPM × 60 × 12) × 100
-  const theoretical = rpm > 0 ? rpm * 60 * 12 : 0;
-  const eff = (counter > 0 && theoretical > 0)
-    ? parseFloat((counter / theoretical * 100).toFixed(2))
-    : 0;
+  const eff  = (counter > 0 && rpm > 0) ? parseFloat(((counter / (rpm*60*12))*100).toFixed(2)) : 0;
 
   currentEntry[mcNum] = {
-    quality:      effectiveQuality,
-    rpm,
-    counter,
-    rollCutUsed:  rollCut,   // always store which roll cut was actually used
-    prod,
-    eff,
-    operator:     document.getElementById('mce-operator').value.trim(),
-    reason:       document.getElementById('mce-reason').value.trim()
+    quality:     effectiveQuality,
+    rpm, counter,
+    rollCutUsed: rollCut,
+    prod, eff,
+    operator:    mc.operator || '',
+    reason
   };
+}
 
+function saveMcEntry(){
+  const mcNum = editingMcEntryNum;
+  if(!mcNum) return;
+  _doSaveMcEntry(mcNum);
   closeOverlay('overlay-mc-entry');
   updateFilledBadge();
   renderMcList();
-
-  const msg = rollCutWasManuallyChanged
-    ? `MC #${mcNum} saved ✓  (Roll Cut changed to ${rollCut} — tap 💾 to save permanently)`
-    : `MC #${mcNum} — ${prod>0?prod.toFixed(2)+' kg':counter+' rounds'} saved ✓`;
-  toast(msg);
+  const entry = currentEntry[mcNum];
+  toast(entry?.prod > 0
+    ? `MC #${mcNum} — ${entry.prod.toFixed(2)} kg · ${entry.eff.toFixed(1)}% ✓`
+    : `MC #${mcNum} saved ✓`);
 }
 
 function clearMcEntry(){
@@ -1761,10 +2538,32 @@ function clearMcEntry(){
 // ═══════════════════════════════════════════════
 //  SHIFT SAVE & PICKER
 // ═══════════════════════════════════════════════
+// Whether shift picker was opened from entry nav (vs. change shift mid-session)
+let shiftPickerFromEntry = false;
+
+function openShiftPickerForEntry(){
+  shiftPickerFromEntry = true;
+  // Pre-fill with auto-detected shift and today
+  document.getElementById('sp-date').value = todayStr();
+  selectShift(autoShift(), false);
+  checkExistingReport();
+
+  // Update modal title and button
+  const head = document.querySelector('#overlay-shift .modal-head h3');
+  if(head) head.textContent = 'Select Shift & Date';
+  const confirmBtn = document.getElementById('sp-confirm-btn');
+  if(confirmBtn) confirmBtn.textContent = 'Open Report →';
+
+  openOverlay('overlay-shift');
+}
+
 function openShiftPicker(){
+  shiftPickerFromEntry = false;
   document.getElementById('sp-date').value = currentShiftDate;
   selectShift(currentShift, false);
   checkExistingReport();
+  const confirmBtn = document.getElementById('sp-confirm-btn');
+  if(confirmBtn) confirmBtn.textContent = 'Change Shift →';
   openOverlay('overlay-shift');
 }
 
@@ -1774,35 +2573,37 @@ function selectShift(s, check=true){
   const nb = document.getElementById('sp-night-btn');
   if(s==='DAY'){
     db.className='btn btn-primary'; db.style.justifyContent='center';
-    nb.className='btn btn-ghost'; nb.style.justifyContent='center';
+    nb.className='btn btn-ghost';   nb.style.justifyContent='center';
   } else {
     nb.className='btn btn-primary'; nb.style.justifyContent='center';
-    db.className='btn btn-ghost'; db.style.justifyContent='center';
+    db.className='btn btn-ghost';   db.style.justifyContent='center';
   }
   if(check) checkExistingReport();
 }
 
 function checkExistingReport(){
-  const date = document.getElementById('sp-date').value || currentShiftDate;
+  const date    = document.getElementById('sp-date').value || currentShiftDate;
   const reports = LS.get('reports')||[];
-  const exists = reports.some(r=>r.date===date && r.shift===currentShift);
-  const warn = document.getElementById('sp-existing-warn');
-  if(exists) warn.classList.remove('hidden');
-  else warn.classList.add('hidden');
+  const exists  = reports.some(r=>r.date===date && r.shift===currentShift);
+  const warn    = document.getElementById('sp-existing-warn');
+  if(warn){
+    if(exists) warn.classList.remove('hidden');
+    else       warn.classList.add('hidden');
+  }
 }
 
 function confirmShiftPicker(){
   const date = document.getElementById('sp-date').value;
   if(!date){ toast('Please select a date'); return; }
   currentShiftDate = date;
-  // Load existing entry
   const reports = LS.get('reports')||[];
   const existing = reports.find(r=>r.date===currentShiftDate && r.shift===currentShift);
   currentEntry = existing ? JSON.parse(JSON.stringify(existing.entry||{})) : {};
   closeOverlay('overlay-shift');
-  updateEntryHeader();
-  renderMcList();
-  toast(`Opened: ${currentShift} shift · ${currentShiftDate}`);
+
+  // Now actually navigate to entry page
+  navigateDirect('entry');
+  toast(`${currentShift==='DAY'?'🌅 Day':'🌙 Night'} Shift · ${currentShiftDate}`);
 }
 
 function saveShiftEntry(){
@@ -1837,36 +2638,143 @@ function saveShiftEntry(){
 // ═══════════════════════════════════════════════
 //  QUALITY MASTER
 // ═══════════════════════════════════════════════
+function switchQualityTab(tab){
+  const isQ = tab === 'qualities';
+  document.getElementById('qtab-qualities-body').style.display = isQ ? '' : 'none';
+  document.getElementById('qtab-yarn-body').style.display      = isQ ? 'none' : '';
+  const qBtn = document.getElementById('qtab-qualities');
+  const yBtn = document.getElementById('qtab-yarn');
+  if(qBtn){ qBtn.style.color=isQ?'var(--red)':'var(--muted)'; qBtn.style.borderBottom=isQ?'2px solid var(--red)':'2px solid transparent'; }
+  if(yBtn){ yBtn.style.color=isQ?'var(--muted)':'var(--red)'; yBtn.style.borderBottom=isQ?'2px solid transparent':'2px solid var(--red)'; }
+  if(!isQ){ renderYarnMaster(); }
+}
+
+function buildYarnOptions(selectedName=''){
+  const yarns = (LS.get('yarns')||[]).filter(y=>y.kind!=='spandex');
+  return '<option value="">— Select Yarn —</option>' +
+    yarns.map(y=>`<option value="${y.name}" ${y.name===selectedName?'selected':''}>${y.name}</option>`).join('');
+}
+
+function addQmYarnRow(yarnName='', pct=''){
+  const container = document.getElementById('qm-yarn-rows');
+  if(!container) return;
+  const rowCount = container.children.length;
+  if(rowCount >= 3){ toast('Maximum 3 yarns per quality'); return; }
+
+  const idx = rowCount;
+  const row = document.createElement('div');
+  row.className = 'qm-yarn-row';
+  row.style.cssText = 'display:flex;gap:8px;align-items:center';
+  row.innerHTML = `
+    <select class="form-input qm-yarn-select" style="flex:1" onchange="updateYarnTotal()">
+      ${buildYarnOptions(yarnName)}
+    </select>
+    <input type="number" class="qm-yarn-pct" placeholder="%" min="1" max="100"
+      value="${pct}"
+      style="width:64px;border:1.5px solid var(--border);border-radius:var(--r);padding:10px 8px;font-size:.9rem;text-align:center"
+      oninput="updateYarnTotal()">
+    <button type="button" onclick="this.closest('.qm-yarn-row').remove();updateYarnTotal()"
+      style="width:28px;height:28px;border-radius:50%;background:var(--red-bg);color:var(--red);border:none;cursor:pointer;font-size:.9rem;flex-shrink:0">✕</button>`;
+  container.appendChild(row);
+
+  // Hide add button when 3 rows present
+  const addBtn = document.getElementById('qm-yarn-add-btn');
+  if(addBtn) addBtn.style.display = container.children.length >= 3 ? 'none' : '';
+  updateYarnTotal();
+}
+
+function updateYarnTotal(){
+  const pcts = [...document.querySelectorAll('.qm-yarn-pct')]
+    .map(i=>parseFloat(i.value)||0);
+  const lycPct = parseFloat(document.getElementById('qm-lycra-pct')?.value||0);
+  const total  = pcts.reduce((s,v)=>s+v, 0) + lycPct;
+  const el     = document.getElementById('qm-yarn-total');
+  if(!el) return;
+  if(pcts.some(p=>p>0) || lycPct>0){
+    const ok = total === 100;
+    el.textContent = `Total: ${total}%${ok?' ✓':''}`;
+    el.style.color = ok ? '#22c55e' : total > 100 ? '#c0392b' : '#b5621e';
+  } else {
+    el.textContent = '';
+  }
+  // Show/hide add button
+  const addBtn = document.getElementById('qm-yarn-add-btn');
+  const rows   = document.getElementById('qm-yarn-rows');
+  if(addBtn && rows) addBtn.style.display = rows.children.length >= 3 ? 'none' : '';
+}
+
 function openQualityModal(id=null){
   editingQualityId = id;
-  const qualities = LS.get('qualities')||[];
-  const q = id ? qualities.find(q=>q.id===id) : null;
+  const qualities  = LS.get('qualities')||[];
+  const q          = id ? qualities.find(q=>q.id===id) : null;
   document.getElementById('qm-title').textContent = q ? 'Edit Quality' : 'Add Quality';
   document.getElementById('qm-name').value    = q?.name||'';
   document.getElementById('qm-gsm').value     = q?.gsm||'';
   document.getElementById('qm-pena').value    = q?.pena||'';
-  document.getElementById('qm-yarn').value    = q?.yarn||'';
   document.getElementById('qm-gauge').value   = q?.gauge||'';
-  document.getElementById('qm-lycra').value   = q?.lycra||'';
-  document.getElementById('qm-notes').value   = q?.notes||'';
   document.getElementById('qm-rollcut').value = q?.rollCut||'';
+  document.getElementById('qm-notes').value   = q?.notes||'';
+
+  // Clear and rebuild yarn rows
+  const container = document.getElementById('qm-yarn-rows');
+  if(container) container.innerHTML = '';
+  const addBtn = document.getElementById('qm-yarn-add-btn');
+  if(addBtn) addBtn.style.display = '';
+
+  // Load existing yarns (stored as array [{name, pct}] or legacy string)
+  const yarnComps = q?.yarnComposition || [];
+  if(yarnComps.length){
+    yarnComps.forEach(yc => addQmYarnRow(yc.name, yc.pct));
+  } else if(q?.yarn){
+    // Legacy single yarn — convert
+    addQmYarnRow(q.yarn, '');
+  } else {
+    addQmYarnRow(); // start with one empty row
+  }
+
+  // Spandex dropdown
+  const spandexs = (LS.get('yarns')||[]).filter(y=>y.kind==='spandex');
+  const lycSel   = document.getElementById('qm-lycra');
+  const lycPct   = document.getElementById('qm-lycra-pct');
+  if(lycSel){
+    lycSel.innerHTML = '<option value="">— None —</option>' +
+      spandexs.map(s=>`<option value="${s.name}" ${q?.lycra===s.name?'selected':''}>${s.name}</option>`).join('');
+  }
+  if(lycPct) lycPct.value = q?.lycraPct||'';
+
+  updateYarnTotal();
   openOverlay('overlay-quality');
 }
 
 function saveQuality(){
   const name = document.getElementById('qm-name').value.trim().toUpperCase();
   if(!name){ toast('Quality name required'); return; }
+
+  // Collect yarn composition
+  const yarnRows = [...document.querySelectorAll('.qm-yarn-row')];
+  const yarnComposition = yarnRows
+    .map(row=>({
+      name: row.querySelector('.qm-yarn-select')?.value||'',
+      pct:  parseFloat(row.querySelector('.qm-yarn-pct')?.value)||0
+    }))
+    .filter(y=>y.name);
+
+  // Build legacy yarn string for backward compat (display/reports)
+  const yarnStr = yarnComposition.map(y=>y.pct ? `${y.name} ${y.pct}%` : y.name).join(' + ');
+
   const qualities = LS.get('qualities')||[];
   const data = {
-    id: editingQualityId || ('q_'+Date.now()),
+    id:              editingQualityId || ('q_'+Date.now()),
     name,
-    gsm:     document.getElementById('qm-gsm').value,
-    pena:    document.getElementById('qm-pena').value,
-    yarn:    document.getElementById('qm-yarn').value.trim(),
-    gauge:   document.getElementById('qm-gauge').value.trim(),
-    lycra:   document.getElementById('qm-lycra').value.trim(),
-    notes:   document.getElementById('qm-notes').value.trim(),
-    rollCut: document.getElementById('qm-rollcut').value
+    gsm:             document.getElementById('qm-gsm').value,
+    pena:            document.getElementById('qm-pena').value,
+    yarn:            yarnStr,           // display string
+    yarnComposition, // structured array
+    gauge:           document.getElementById('qm-gauge').value.trim(),
+    lycra:           document.getElementById('qm-lycra').value,
+    lycraPct:        document.getElementById('qm-lycra-pct').value,
+    notes:           document.getElementById('qm-notes').value.trim(),
+    rollCut:         document.getElementById('qm-rollcut').value
   };
   if(editingQualityId){
     const idx = qualities.findIndex(q=>q.id===editingQualityId);
@@ -1882,41 +2790,150 @@ function saveQuality(){
 
 function deleteQuality(id){
   if(!confirm('Delete this quality?')) return;
-  const qualities = (LS.get('qualities')||[]).filter(q=>q.id!==id);
-  LS.set('qualities', qualities);
+  LS.set('qualities', (LS.get('qualities')||[]).filter(q=>q.id!==id));
   renderQualities();
   toast('Quality deleted');
 }
 
 function renderQualities(){
   const qualities = LS.get('qualities')||[];
-  const search = (document.getElementById('quality-search')?.value||'').toLowerCase();
-  const filtered = search ? qualities.filter(q=>q.name.toLowerCase().includes(search)) : qualities;
-  const grid = document.getElementById('quality-grid');
-  if(!grid) return;
+  const search    = (document.getElementById('quality-search')?.value||'').toLowerCase();
+  const filtered  = search ? qualities.filter(q=>
+    q.name.toLowerCase().includes(search) ||
+    (q.yarn||'').toLowerCase().includes(search) ||
+    (q.gauge||'').toLowerCase().includes(search)
+  ) : qualities;
+
+  const tbody = document.getElementById('quality-tbody');
+  if(!tbody) return;
+
   if(!filtered.length){
-    grid.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🎨</div>'+(search?'No matching qualities.':'No qualities yet. Add one to get started.')+'</div>';
+    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">${search?'No matching qualities.':'No qualities yet. Add one to get started.'}</td></tr>`;
     return;
   }
-  grid.innerHTML = filtered.map(q=>`
-    <div class="quality-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div class="quality-name">${q.name}</div>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-ghost btn-xs" onclick="openQualityModal('${q.id}')">✏️</button>
-          <button class="btn btn-danger btn-xs" onclick="deleteQuality('${q.id}')">🗑</button>
-        </div>
-      </div>
-      <div class="quality-specs">
-        ${q.rollCut?`<span class="badge badge-green">✂ Roll Cut: ${q.rollCut}</span>`:'<span class="badge badge-red">⚠ No Roll Cut</span>'}
-        ${q.gsm?`<span class="badge badge-navy">GSM ${q.gsm}</span>`:''}
-        ${q.pena?`<span class="badge badge-navy">PENA ${q.pena}cm</span>`:''}
-        ${q.yarn?`<span class="badge badge-gold">${q.yarn}</span>`:''}
-        ${q.gauge?`<span class="badge badge-navy">⚙️ ${q.gauge}</span>`:''}
-        ${q.lycra?`<span class="badge badge-navy">${q.lycra}</span>`:''}
-        ${q.notes?`<span class="badge badge-navy" style="color:var(--muted)">${q.notes}</span>`:''}
-      </div>
-    </div>`).join('');
+
+  tbody.innerHTML = filtered.map(q=>{
+    // Build yarn display
+    let yarnDisplay = '—';
+    if(q.yarnComposition && q.yarnComposition.length){
+      yarnDisplay = q.yarnComposition.map(y=>
+        y.pct ? `<span style="white-space:nowrap">${y.name} <b>${y.pct}%</b></span>` : `<span>${y.name}</span>`
+      ).join('<br>');
+    } else if(q.yarn){
+      yarnDisplay = q.yarn;
+    }
+    const spandexDisplay = q.lycra
+      ? `${q.lycra}${q.lycraPct?' <b>'+q.lycraPct+'%</b>':''}`
+      : '—';
+    return `
+    <tr>
+      <td><strong>${q.name}</strong></td>
+      <td>${q.gsm||'—'}</td>
+      <td>${q.pena||'—'}</td>
+      <td>${q.gauge||'—'}</td>
+      <td style="line-height:1.6">${yarnDisplay}</td>
+      <td>${spandexDisplay}</td>
+      <td>${q.rollCut ? `<span class="badge badge-green">✂ ${q.rollCut}</span>` : '<span class="badge badge-red">⚠ Not set</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-xs" onclick="openQualityModal('${q.id}')">✏️</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteQuality('${q.id}')">🗑</button>
+      </td>
+    </tr>`}).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  YARN MASTER
+// ═══════════════════════════════════════════════
+let editingYarnId  = null;
+let editingYarnKind = 'yarn';
+
+if(!LS.get('yarns')) LS.set('yarns', []);
+
+function openYarnModal(kind='yarn', id=null){
+  editingYarnId   = id;
+  editingYarnKind = kind;
+  const yarns = LS.get('yarns')||[];
+  const y     = id ? yarns.find(y=>y.id===id) : null;
+  const isSpandex = kind==='spandex';
+
+  document.getElementById('ym-title').textContent     = (y?'Edit ':'Add ') + (isSpandex?'Spandex':'Yarn');
+  document.getElementById('ym-name-label').textContent = isSpandex ? 'Spandex Name *' : 'Yarn Name *';
+  document.getElementById('ym-name').value    = y?.name||'';
+  document.getElementById('ym-name').placeholder = isSpandex ? 'e.g. 20D Lycra, 40D Spandex' : 'e.g. 75/36 BRT';
+  document.getElementById('ym-count').value   = y?.count||'';
+  document.getElementById('ym-notes').value   = y?.notes||'';
+
+  // Hide count/type for spandex if not needed
+  document.getElementById('ym-count-group').style.display = isSpandex ? 'none' : '';
+  document.getElementById('ym-type-group').style.display  = isSpandex ? 'none' : '';
+  if(!isSpandex) document.getElementById('ym-type').value = y?.type||'Polyester';
+
+  openOverlay('overlay-yarn');
+}
+
+function saveYarn(){
+  const name = document.getElementById('ym-name').value.trim();
+  if(!name){ toast('Name required'); return; }
+  const yarns = LS.get('yarns')||[];
+  const data  = {
+    id:    editingYarnId || ('yarn_'+Date.now()),
+    kind:  editingYarnKind,
+    name,
+    count: document.getElementById('ym-count').value.trim(),
+    type:  editingYarnKind==='spandex' ? 'Spandex' : document.getElementById('ym-type').value,
+    notes: document.getElementById('ym-notes').value.trim()
+  };
+  if(editingYarnId){
+    const idx = yarns.findIndex(y=>y.id===editingYarnId);
+    if(idx>=0) yarns[idx]=data;
+  } else {
+    yarns.push(data);
+  }
+  LS.set('yarns', yarns);
+  closeOverlay('overlay-yarn');
+  renderYarnMaster();
+  toast((editingYarnId?'Updated':'Added')+' ✓');
+}
+
+function deleteYarn(id){
+  if(!confirm('Delete this entry?')) return;
+  LS.set('yarns', (LS.get('yarns')||[]).filter(y=>y.id!==id));
+  renderYarnMaster();
+  toast('Deleted');
+}
+
+function renderYarnMaster(){
+  const yarns    = LS.get('yarns')||[];
+  const yarnList = yarns.filter(y=>y.kind!=='spandex');
+  const spxList  = yarns.filter(y=>y.kind==='spandex');
+
+  const yarnTbody = document.getElementById('yarn-tbody');
+  const spxTbody  = document.getElementById('spandex-tbody');
+
+  if(yarnTbody){
+    yarnTbody.innerHTML = yarnList.length
+      ? yarnList.map(y=>`<tr>
+          <td><strong>${y.name}</strong></td>
+          <td>${y.count||'—'}</td>
+          <td>${y.type||'—'}</td>
+          <td style="color:var(--muted);font-size:.72rem">${y.notes||'—'}</td>
+          <td><button class="btn btn-ghost btn-xs" onclick="openYarnModal('yarn','${y.id}')">✏️</button>
+              <button class="btn btn-danger btn-xs" onclick="deleteYarn('${y.id}')">🗑</button></td>
+        </tr>`).join('')
+      : '<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--muted)">No yarns added yet.</td></tr>';
+  }
+
+  if(spxTbody){
+    spxTbody.innerHTML = spxList.length
+      ? spxList.map(s=>`<tr>
+          <td><strong>${s.name}</strong></td>
+          <td>${s.count||'—'}</td>
+          <td style="color:var(--muted);font-size:.72rem">${s.notes||'—'}</td>
+          <td><button class="btn btn-ghost btn-xs" onclick="openYarnModal('spandex','${s.id}')">✏️</button>
+              <button class="btn btn-danger btn-xs" onclick="deleteYarn('${s.id}')">🗑</button></td>
+        </tr>`).join('')
+      : '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted)">No spandex added yet.</td></tr>';
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -1969,52 +2986,113 @@ function saveMachineSetup(){
   toast(`Machine #${num} saved ✓${rcMsg}`);
 }
 
+let msGroupBy = 'operator'; // default
+
+function setMsGroupBy(group){
+  msGroupBy = group;
+  document.querySelectorAll('.ms-filter').forEach(b=>{
+    b.classList.toggle('active', b.dataset.group === group);
+  });
+  renderMachineSetup();
+}
+
 function renderMachineSetup(){
-  const machines = LS.get('machines')||[];
+  const machines  = LS.get('machines')||[];
   const qualities = LS.get('qualities')||[];
-  const search = (document.getElementById('machine-search')?.value||'').toLowerCase();
-  const list = document.getElementById('machine-setup-list');
+  const search    = (document.getElementById('machine-search')?.value||'').toLowerCase();
+  const list      = document.getElementById('machine-setup-list');
   if(!list) return;
 
-  let mcs = machines;
-  if(search) mcs = mcs.filter(m=>
-    String(m.num).includes(search) ||
-    (m.operator||'').toLowerCase().includes(search)
-  );
-  mcs = mcs.sort((a,b)=>a.num-b.num);
+  let mcs = [...machines].sort((a,b)=>a.num-b.num);
 
-  if(!mcs.length){ list.innerHTML='<div class="empty"><div class="empty-icon">⚙️</div>No machines found.</div>'; return; }
+  // Search filter — across MC#, operator, quality name, gauge, yarn
+  if(search){
+    mcs = mcs.filter(m=>{
+      const q = qualities.find(q=>q.id===m.quality);
+      return String(m.num).includes(search) ||
+        (m.operator||'').toLowerCase().includes(search) ||
+        (q?.name||'').toLowerCase().includes(search) ||
+        (q?.gauge||'').toLowerCase().includes(search) ||
+        (m.feeder||'').toLowerCase().includes(search) ||
+        (q?.yarn||'').toLowerCase().includes(search);
+    });
+  }
 
-  // Group by operator
-  const byOp = {};
-  mcs.forEach(m=>{ const op=m.operator||'Unassigned'; if(!byOp[op]) byOp[op]=[]; byOp[op].push(m); });
+  if(!mcs.length){
+    list.innerHTML='<div class="empty"><div class="empty-icon">⚙️</div>No machines found.</div>';
+    return;
+  }
 
-  list.innerHTML = Object.entries(byOp).map(([op, mlist])=>`
+  // Build group key per machine
+  function groupKey(m){
+    const q = qualities.find(q=>q.id===m.quality);
+    switch(msGroupBy){
+      case 'operator': return m.operator||'Unassigned';
+      case 'quality':  return q?.name||'No Quality';
+      case 'gauge':    return q?.gauge||'No Gauge';
+      case 'feeder':   return m.feeder||'No Feeder';
+      case 'yarn':     return q?.yarn||'No Yarn';
+      default:         return 'All Machines';
+    }
+  }
+
+  // Group machines
+  const grouped = {};
+  mcs.forEach(m=>{
+    const k = groupKey(m);
+    if(!grouped[k]) grouped[k] = [];
+    grouped[k].push(m);
+  });
+
+  // Build table rows
+  function buildRows(mlist){
+    return mlist.map(m=>{
+      const q = qualities.find(q=>q.id===m.quality);
+      const rcBadge = m.rollCutOverride
+        ? `<span class="badge" style="background:#e0e7ff;color:#3730a3">⚙️ ${m.rollCutOverride}</span>`
+        : q?.rollCut ? `<span class="badge badge-navy">${q.rollCut}</span>`
+        : `<span style="color:var(--muted);font-size:.72rem">—</span>`;
+      return `<tr>
+        <td><strong>MC ${m.num}</strong></td>
+        ${msGroupBy!=='operator'?`<td style="font-size:.72rem;color:var(--muted)">${m.operator||'—'}</td>`:''}
+        ${msGroupBy!=='quality'?`<td>${q?`<span class="badge badge-gold">${q.name}</span>`:'<span style="color:var(--muted)">—</span>'}</td>`:''}
+        ${msGroupBy!=='gauge'?`<td style="font-size:.72rem">${q?.gauge||'—'}</td>`:''}
+        <td><span class="badge badge-navy">${m.rpm||'—'}</span></td>
+        <td style="font-size:.72rem">${m.feeder||'—'}</td>
+        ${msGroupBy!=='yarn'?`<td style="font-size:.72rem;color:var(--muted)">${q?.yarn||'—'}</td>`:''}
+        <td>${rcBadge}</td>
+        <td>${m.active!==false?'<span class="badge badge-green">Active</span>':'<span class="badge badge-red">Inactive</span>'}</td>
+        <td><button class="btn btn-ghost btn-xs" onclick="openMachineSetupModal(${m.num})">✏️</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Build column headers (context-aware — hide the column being grouped by)
+  function buildHeader(){
+    return `<tr>
+      <th>MC #</th>
+      ${msGroupBy!=='operator'?'<th>Operator</th>':''}
+      ${msGroupBy!=='quality'?'<th>Quality</th>':''}
+      ${msGroupBy!=='gauge'?'<th>Gauge</th>':''}
+      <th>RPM</th>
+      <th>Feeder</th>
+      ${msGroupBy!=='yarn'?'<th>Yarn</th>':''}
+      <th>Roll Cut</th>
+      <th>Status</th>
+      <th></th>
+    </tr>`;
+  }
+
+  list.innerHTML = Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b)).map(([grpName, mlist])=>`
     <div class="card" style="margin-bottom:10px">
       <div class="card-header">
-        <span class="card-title">${op}</span>
-        <span class="badge badge-navy">${mlist.length} machines</span>
+        <span class="card-title">${grpName}</span>
+        <span class="badge badge-navy">${mlist.length} machine${mlist.length!==1?'s':''}</span>
       </div>
       <div style="overflow-x:auto">
-        <table class="tbl" style="min-width:500px">
-          <thead><tr><th>MC #</th><th>Quality</th><th>RPM</th><th>Roll Cut</th><th>Status</th><th></th></tr></thead>
-          <tbody>${mlist.map(m=>{
-            const q = qualities.find(q=>q.id===m.quality);
-            const effectiveRC = m.rollCutOverride || (q?.rollCut) || '—';
-            const rcBadge = m.rollCutOverride
-              ? `<span class="badge" style="background:#e0e7ff;color:#3730a3">⚙️ ${m.rollCutOverride}</span>`
-              : q?.rollCut
-                ? `<span class="badge badge-navy">${q.rollCut}</span>`
-                : `<span style="color:var(--muted);font-size:.72rem">not set</span>`;
-            return `<tr>
-              <td><strong>MC ${m.num}</strong></td>
-              <td>${q ? `<span class="badge badge-gold">${q.name}</span>` : '<span style="color:var(--muted)">Not set</span>'}</td>
-              <td><span class="badge badge-navy">${m.rpm||'—'}</span></td>
-              <td>${rcBadge}</td>
-              <td>${m.active!==false?'<span class="badge badge-green">Active</span>':'<span class="badge badge-red">Inactive</span>'}</td>
-              <td><button class="btn btn-ghost btn-xs" onclick="openMachineSetupModal(${m.num})">✏️ Edit</button></td>
-            </tr>`;
-          }).join('')}</tbody>
+        <table class="tbl" style="min-width:400px">
+          <thead>${buildHeader()}</thead>
+          <tbody>${buildRows(mlist)}</tbody>
         </table>
       </div>
     </div>`).join('');
@@ -2074,86 +3152,186 @@ function openReport(id){
   const reports = LS.get('reports')||[];
   viewingReport = reports.find(r=>r.id===id);
   if(!viewingReport) return;
-  renderReportView(viewingReport);
-  openOverlay('overlay-report');
+  navigate('viewreport');
 }
 
-function renderReportView(report){
+// State for view report page
+let vrAllRows    = []; // all processed rows for filtering
+let vrSortCol    = 'mc';
+let vrSortDir    = 1;  // 1=asc, -1=desc
+
+function renderViewReport(){
+  const report = viewingReport;
+  if(!report){ navigate('reports'); return; }
+
   const qualities = LS.get('qualities')||[];
-  const machines = LS.get('machines')||[];
-  document.getElementById('rv-title').textContent = `${report.date} · ${report.shift} Shift`;
+  const machines  = LS.get('machines')||[];
+  const groups    = getMachineGroups();
 
-  const entries = Object.entries(report.entry||{})
-    .filter(([,v])=>v&&(v.prod>0||v.counter>0))
-    .sort(([a],[b])=>parseInt(a)-parseInt(b));
+  // Header
+  const dateObj = new Date(report.date+'T12:00:00');
+  const dateStr = dateObj.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('vr-title').textContent    = `${dateStr} — ${report.shift==='DAY'?'🌅 Day':'🌙 Night'} Shift`;
+  document.getElementById('vr-subtitle').textContent = `Saved ${new Date(report.savedAt).toLocaleString('en-IN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'short'})}`;
 
-  // Operator totals
+  // Stats
+  document.getElementById('vr-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-val" style="color:#e74c3c">${(report.totalProd||0).toFixed(0)}</div><div class="stat-lbl">Total Prod (kg)</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#e74c3c">${(report.avgEff||0).toFixed(1)}%</div><div class="stat-lbl">Avg Efficiency</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#e74c3c">${report.activeCount||0}</div><div class="stat-lbl">Running</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:#e74c3c">${Object.values(report.entry||{}).filter(v=>v.reason==='STOP').length}</div><div class="stat-lbl">Stopped</div></div>`;
+
+  // Build all rows
+  vrAllRows = Object.entries(report.entry||{})
+    .sort(([a],[b])=>parseInt(a)-parseInt(b))
+    .map(([mc,v])=>{
+      const q      = qualities.find(q=>q.id===v.quality);
+      const mcObj  = machines.find(m=>m.num==mc)||{};
+      const grp    = groups.find(g=>parseMachineRange(g.machines).includes(parseInt(mc)));
+      return {
+        mc:       parseInt(mc),
+        quality:  q?.name||'—',
+        qualityId:v.quality||'',
+        operator: v.operator||mcObj.operator||'—',
+        rpm:      v.rpm||0,
+        counter:  v.counter||0,
+        rollcut:  v.rollCutUsed||q?.rollCut||0,
+        prod:     v.prod||0,
+        eff:      v.eff||0,
+        gsm:      q?.gsm||'—',
+        reason:   v.reason||'',
+        group:    grp?.name||'',
+        groupId:  grp?.id||'',
+        stopped:  v.reason==='STOP',
+      };
+    });
+
+  // Populate group filter
+  const groupSel = document.getElementById('vr-filter-group');
+  if(groupSel){
+    groupSel.innerHTML = '<option value="">All Groups</option>' +
+      groups.map(g=>`<option value="${g.id}">${g.name}</option>`).join('');
+  }
+
+  // Operator summary
   const opMap = {};
-  entries.forEach(([mc,v])=>{
-    const op = v.operator || (machines.find(m=>m.num==mc)?.operator||'Unknown');
-    if(!opMap[op]) opMap[op]={prod:0,count:0,effSum:0,effCount:0};
-    opMap[op].prod += v.prod||0;
-    opMap[op].count++;
-    if(v.eff>0){ opMap[op].effSum+=v.eff; opMap[op].effCount++; }
+  vrAllRows.filter(r=>!r.stopped&&r.prod>0).forEach(r=>{
+    if(!opMap[r.operator]) opMap[r.operator]={prod:0,count:0,effSum:0,effCount:0};
+    opMap[r.operator].prod  += r.prod;
+    opMap[r.operator].count++;
+    if(r.eff>0){ opMap[r.operator].effSum+=r.eff; opMap[r.operator].effCount++; }
+  });
+  const opRows = Object.entries(opMap).sort(([,a],[,b])=>b.prod-a.prod).map(([op,d])=>{
+    const ae = d.effCount>0?d.effSum/d.effCount:0;
+    return `<tr><td><strong>${op}</strong></td><td>${d.count}</td>
+      <td>${d.prod.toFixed(2)}</td>
+      <td class="${ae>=80?'eff-hi':ae>=60?'eff-mid':'eff-lo'}">${ae>0?ae.toFixed(1)+'%':'—'}</td></tr>`;
+  }).join('');
+  document.getElementById('vr-op-summary').innerHTML = `
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Operator</th><th>Machines</th><th>Prod (kg)</th><th>Avg Eff%</th></tr></thead>
+      <tbody>${opRows}</tbody>
+    </table></div>`;
+
+  filterReportTable();
+}
+
+function filterReportTable(){
+  const search    = (document.getElementById('vr-search')?.value||'').toLowerCase().trim();
+  const effFilter = document.getElementById('vr-filter-eff')?.value||'';
+  const grpFilter = document.getElementById('vr-filter-group')?.value||'';
+
+  let rows = vrAllRows;
+
+  // Text search — across all columns
+  if(search){
+    rows = rows.filter(r=>
+      String(r.mc).includes(search) ||
+      r.quality.toLowerCase().includes(search) ||
+      r.operator.toLowerCase().includes(search) ||
+      String(r.rpm).includes(search) ||
+      String(r.counter).includes(search) ||
+      r.reason.toLowerCase().includes(search) ||
+      r.group.toLowerCase().includes(search) ||
+      String(r.gsm).includes(search)
+    );
+  }
+
+  // Efficiency filter
+  if(effFilter === 'high')  rows = rows.filter(r=>!r.stopped && r.eff>=80);
+  if(effFilter === 'mid')   rows = rows.filter(r=>!r.stopped && r.eff>=60 && r.eff<80);
+  if(effFilter === 'low')   rows = rows.filter(r=>!r.stopped && r.eff>0 && r.eff<60);
+  if(effFilter === 'stop')  rows = rows.filter(r=>r.stopped);
+
+  // Group filter
+  if(grpFilter) rows = rows.filter(r=>r.groupId===grpFilter);
+
+  // Sort
+  rows = [...rows].sort((a,b)=>{
+    let av = a[vrSortCol], bv = b[vrSortCol];
+    if(typeof av === 'string') return av.localeCompare(bv) * vrSortDir;
+    return (av - bv) * vrSortDir;
   });
 
-  const dateObj = new Date(report.date+'T12:00:00');
-  const dateStr = dateObj.toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  // Update sort indicators
+  ['mc','quality','operator','rpm','counter','rollcut','prod','eff','gsm','reason'].forEach(col=>{
+    const el = document.getElementById('sort-'+col);
+    if(el) el.textContent = col===vrSortCol ? (vrSortDir===1?' ↑':' ↓') : '';
+  });
 
-  document.getElementById('rv-body').innerHTML = `
-    <div id="printable-report">
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
-        <div style="background:var(--navy);border-radius:10px;padding:12px 16px;min-width:110px;flex:1">
-          <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Total Prod</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#e74c3c">${(report.totalProd||0).toLocaleString()} kg</div>
-        </div>
-        <div style="background:var(--navy);border-radius:10px;padding:12px 16px;min-width:110px;flex:1">
-          <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Avg Efficiency</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#e74c3c">${(report.avgEff||0).toFixed(1)}%</div>
-        </div>
-        <div style="background:var(--navy);border-radius:10px;padding:12px 16px;min-width:110px;flex:1">
-          <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Machines</div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;color:#e74c3c">${report.activeCount||0}</div>
-        </div>
-      </div>
+  // Count
+  const countEl = document.getElementById('vr-row-count');
+  const rowCountEl = document.getElementById('vr-filter-count');
+  if(countEl) countEl.textContent = `${rows.length} of ${vrAllRows.length} machines`;
+  if(rowCountEl) rowCountEl.textContent = rows.length < vrAllRows.length
+    ? `Showing ${rows.length} of ${vrAllRows.length} machines`
+    : `Showing all ${vrAllRows.length} machines`;
 
-      <div style="font-family:'Playfair Display',serif;font-size:.9rem;color:var(--navy);margin-bottom:8px">Operator Summary</div>
-      <div class="tbl-wrap" style="margin-bottom:16px">
-        <table class="tbl"><thead><tr><th>Operator</th><th>Machines</th><th>Prod (kg)</th><th>Avg Eff%</th></tr></thead>
-        <tbody>${Object.entries(opMap).sort(([,a],[,b])=>b.prod-a.prod).map(([op,d])=>{
-          const ae = d.effCount>0?d.effSum/d.effCount:0;
-          return `<tr><td><strong>${op}</strong></td><td>${d.count}</td><td>${d.prod.toFixed(2)}</td>
-            <td class="${ae>=80?'eff-hi':ae>=60?'eff-mid':'eff-lo'}">${ae>0?ae.toFixed(1)+'%':'—'}</td></tr>`;
-        }).join('')}</tbody></table>
-      </div>
+  // Render rows
+  const tbody = document.getElementById('vr-tbody');
+  if(!tbody) return;
 
-      <div style="font-family:'Playfair Display',serif;font-size:.9rem;color:var(--navy);margin-bottom:8px">Machine Detail</div>
-      <div class="tbl-wrap">
-        <table class="tbl"><thead><tr>
-          <th>MC#</th><th>Operator</th><th>Quality</th><th>RPM</th>
-          <th>Counter</th><th>Roll Cut</th><th>Prod (kg)</th><th>Eff%</th>
-          <th>GSM</th><th>PENA</th><th>Yarn</th><th>Reason</th>
-        </tr></thead>
-        <tbody>${entries.map(([mc,v])=>{
-          const q = qualities.find(q=>q.id===v.quality);
-          const effCls = v.eff>=80?'eff-hi':v.eff>=60?'eff-mid':'eff-lo';
-          return `<tr>
-            <td><strong>${mc}</strong></td>
-            <td>${v.operator||machines.find(m=>m.num==mc)?.operator||'—'}</td>
-            <td>${q?q.name:'—'}</td>
-            <td>${v.rpm||'—'}</td>
-            <td>${v.counter||'—'}</td>
-            <td>${v.rollCutUsed || q?.rollCut||'—'}</td>
-            <td>${v.prod>0?v.prod.toFixed(3):0}</td>
-            <td class="${effCls}">${v.eff>0?v.eff.toFixed(2)+'%':'—'}</td>
-            <td>${q?.gsm||'—'}</td>
-            <td>${q?.pena||'—'}</td>
-            <td>${q?.yarn||'—'}</td>
-            <td style="color:#c0392b;font-size:.72rem;font-weight:600">${v.reason||''}</td>
-          </tr>`;
-        }).join('')}</tbody></table>
-      </div>
-    </div>`;
+  if(!rows.length){
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted)">No matching machines</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r=>{
+    const effCls  = r.stopped?'':r.eff>=80?'eff-hi':r.eff>=60?'eff-mid':r.eff>0?'eff-lo':'';
+    const effVal  = r.stopped
+      ? '<span style="background:#fdecea;color:#c0392b;padding:2px 8px;border-radius:6px;font-weight:700;font-size:.72rem">STOP</span>'
+      : r.eff>0 ? r.eff.toFixed(1)+'%' : '—';
+    const rowStyle = r.stopped ? 'background:#fdecea' : r.eff>=80 ? 'background:#f0fdf4' : '';
+    const grpDot   = r.group ? `<span style="width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px;background:${getMachineGroups().find(g=>g.id===r.groupId)?.color||'#aaa'}"></span>` : '';
+    return `<tr style="${rowStyle}">
+      <td><strong>${r.mc}</strong>${grpDot?'<br><span style="font-size:.58rem;color:var(--muted)">'+grpDot+r.group+'</span>':''}</td>
+      <td>${r.quality}</td>
+      <td>${r.operator}</td>
+      <td>${r.rpm||'—'}</td>
+      <td>${r.counter||'—'}</td>
+      <td>${r.rollcut||'—'}</td>
+      <td>${r.prod>0?r.prod.toFixed(2):'—'}</td>
+      <td class="${effCls}">${effVal}</td>
+      <td>${r.gsm}</td>
+      <td style="color:#c0392b;font-size:.72rem;font-weight:600">${r.reason||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortReportTable(col){
+  if(vrSortCol===col) vrSortDir *= -1;
+  else { vrSortCol=col; vrSortDir=1; }
+  filterReportTable();
+}
+
+function clearReportFilters(){
+  const s = document.getElementById('vr-search');
+  const e = document.getElementById('vr-filter-eff');
+  const g = document.getElementById('vr-filter-group');
+  if(s) s.value='';
+  if(e) e.value='';
+  if(g) g.value='';
+  filterReportTable();
 }
 
 function exportViewedReport(){ if(viewingReport) exportReportToXlsx(viewingReport); }
@@ -2227,28 +3405,28 @@ function exportReportToXlsx(report){
 }
 
 function printViewedReport(){
-  const body = document.getElementById('printable-report');
-  if(!body) return;
-  const html=`<!DOCTYPE html><html><head><title>NNP Efficiency Report</title><style>
+  const table = document.getElementById('vr-table');
+  const stats = document.getElementById('vr-stats');
+  const opSum = document.getElementById('vr-op-summary');
+  if(!table) return;
+  const printHtml=`<!DOCTYPE html><html><head><title>NNP Efficiency Report</title><style>
     body{font-family:Arial,sans-serif;padding:20px;font-size:11px;color:#1a1a2e}
-    h2{color:#0b1724;font-size:14px;margin-bottom:4px}
+    h2{color:#1a1a1a;font-size:14px;margin-bottom:4px}
     table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10px}
-    th{background:#0b1724;color:#c8a84b;padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase}
-    td{padding:5px 8px;border-bottom:1px solid #e4ddd0}
-    tr:nth-child(even) td{background:#faf7f2}
-    .stat-row{display:flex;gap:12px;margin-bottom:12px}
-    .stat-box{background:#f0ece4;padding:8px 12px;border-radius:6px;min-width:100px}
-    .stat-val{font-size:16px;font-weight:700;color:#0b1724}
-    .stat-lbl{font-size:9px;color:#7a8899;text-transform:uppercase}
+    th{background:#1a1a1a;color:#fff;padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase}
+    td{padding:5px 8px;border-bottom:1px solid #e0e0e0}
+    tr:nth-child(even) td{background:#f9f9f9}
     @media print{body{padding:0}}
   </style></head><body>
   <h2>Nath Narayan Polytex Pvt. Ltd. — Efficiency Report</h2>
-  <p style="color:#7a8899;font-size:10px;margin-bottom:12px">${viewingReport?.date} · ${viewingReport?.shift} Shift</p>
-  ${body.innerHTML}
+  <p style="color:#888;font-size:10px;margin-bottom:12px">${viewingReport?.date} · ${viewingReport?.shift} Shift · Total: ${(viewingReport?.totalProd||0).toFixed(0)} kg · Avg Eff: ${(viewingReport?.avgEff||0).toFixed(1)}%</p>
+  ${table.outerHTML}
   </body></html>`;
-  const w=window.open('','_blank');
-  w.document.write(html); w.document.close();
-  setTimeout(()=>w.print(),500);
+  const w = window.open('','_blank');
+  w.document.write(printHtml);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>w.print(), 400);
 }
 
 // ═══════════════════════════════════════════════
@@ -2449,72 +3627,246 @@ function renderDashboard(){
 
 window.showHeatmapDetail = function(mc){
   // Navigate to entry page and open that machine's entry modal
-  navigate('entry');
+  navigateDirect('entry');
   setTimeout(()=>openMcEntry(mc), 150);
 };
 
 // ═══════════════════════════════════════════════
 //  INSTRUCTIONS
 // ═══════════════════════════════════════════════
-function openInstructionModal(){
-  document.getElementById('ins-title').value='';
-  document.getElementById('ins-super').value='';
-  document.getElementById('ins-priority').value='normal';
+let activeInsTab  = 'DAY';
+let tickingInsId  = null;
+let editingInsId  = null;
+
+function getInsCompletionKey(){
+  const h = new Date().getHours();
+  const shift = (h >= 8 && h < 20) ? 'DAY' : 'NIGHT';
+  let date = todayStr();
+  if(h < 8){
+    const d = new Date(Date.now() - 86400000);
+    date = d.toISOString().split('T')[0];
+  }
+  return date + '_' + shift;
+}
+
+function getInsCompletions(){
+  return LS.get('insCompletions') || {};
+}
+
+function switchInsTab(shift){
+  activeInsTab = shift;
+  const dayBtn   = document.getElementById('instab-day');
+  const nightBtn = document.getElementById('instab-night');
+  if(dayBtn){
+    dayBtn.style.color        = shift==='DAY' ? 'var(--red)' : 'var(--muted)';
+    dayBtn.style.borderBottom = shift==='DAY' ? '2px solid var(--red)' : '2px solid transparent';
+  }
+  if(nightBtn){
+    nightBtn.style.color        = shift==='NIGHT' ? 'var(--red)' : 'var(--muted)';
+    nightBtn.style.borderBottom = shift==='NIGHT' ? '2px solid var(--red)' : '2px solid transparent';
+  }
+  renderInstructions();
+}
+
+function selectInsPriority(p){
+  const el = document.getElementById('ins-priority');
+  if(el) el.value = p;
+  ['normal','high','urgent'].forEach(pr=>{
+    const btn = document.getElementById('ins-pri-'+pr);
+    if(!btn) return;
+    const cols = {normal:['#1a1a1a','#fff','#fff'], high:['#fef3e2','#b5621e','#fef3e2'], urgent:['#fdecea','#c0392b','#fdecea']};
+    const isA  = pr===p;
+    btn.style.background  = isA ? cols[pr][0] : '#fff';
+    btn.style.color       = isA ? (pr==='normal'?'#fff':cols[pr][1]) : cols[pr][1];
+    btn.style.borderColor = isA ? cols[pr][0] : '#e0e0e0';
+  });
+}
+
+function openInstructionModal(id=null){
+  if(currentRole !== 'owner'){ toast('Only owner can manage instructions'); return; }
+  editingInsId = id;
+  const ins = id ? (LS.get('instructions')||[]).find(i=>i.id===id) : null;
+  const titleEl = document.getElementById('ins-modal-title');
+  if(titleEl) titleEl.textContent = ins ? 'Edit Instruction' : 'Add Instruction';
+  document.getElementById('ins-title').value    = ins?.title    || '';
+  document.getElementById('ins-shift').value    = ins?.shift    || 'BOTH';
+  document.getElementById('ins-priority').value = ins?.priority || 'normal';
+  const dailyEl = document.getElementById('ins-daily');
+  if(dailyEl) dailyEl.checked = ins ? ins.daily !== false : true;
+  const groups = getMachineGroups();
+  const grpSel = document.getElementById('ins-group');
+  if(grpSel){
+    grpSel.innerHTML = '<option value="">All Groups</option>' +
+      groups.map(g=>`<option value="${g.id}" ${ins?.group===g.id?'selected':''}>${g.name}</option>`).join('');
+  }
+  selectInsPriority(ins?.priority || 'normal');
   openOverlay('overlay-instruction');
 }
 
 function saveInstruction(){
-  const title = document.getElementById('ins-title').value.trim();
-  if(!title){ toast('Task required'); return; }
+  const title = (document.getElementById('ins-title').value||'').trim();
+  if(!title){ toast('Enter an instruction'); return; }
   const ins = LS.get('instructions')||[];
-  ins.unshift({
-    id:'i_'+Date.now(), title,
-    supervisor: document.getElementById('ins-super').value.trim(),
-    priority: document.getElementById('ins-priority').value,
-    done: false, createdAt: new Date().toISOString()
-  });
-  LS.set('instructions',ins);
+  const record = {
+    id:        editingInsId || ('i_'+Date.now()),
+    title,
+    shift:     document.getElementById('ins-shift').value,
+    priority:  document.getElementById('ins-priority').value || 'normal',
+    group:     document.getElementById('ins-group').value,
+    daily:     document.getElementById('ins-daily').checked,
+    createdAt: editingInsId ? (ins.find(i=>i.id===editingInsId)?.createdAt||new Date().toISOString()) : new Date().toISOString()
+  };
+  if(editingInsId){
+    const idx = ins.findIndex(i=>i.id===editingInsId);
+    if(idx>=0) ins[idx]=record;
+  } else { ins.unshift(record); }
+  LS.set('instructions', ins);
   closeOverlay('overlay-instruction');
   renderInstructions();
-  toast('Instruction added ✓');
+  toast((editingInsId?'Updated':'Added')+' ✓');
 }
 
-function toggleInstruction(id){
-  const ins = LS.get('instructions')||[];
-  const i = ins.find(i=>i.id===id);
-  if(i) i.done=!i.done;
-  LS.set('instructions',ins);
+function openTickModal(id){
+  tickingInsId = id;
+  const ins = (LS.get('instructions')||[]).find(i=>i.id===id);
+  if(!ins) return;
+  const el = document.getElementById('ins-tick-task');
+  if(el) el.textContent = ins.title;
+  const noteEl = document.getElementById('ins-tick-notes');
+  if(noteEl) noteEl.value = '';
+  openOverlay('overlay-ins-tick');
+}
+
+function confirmTickInstruction(){
+  const id   = tickingInsId;
+  const note = (document.getElementById('ins-tick-notes')?.value||'').trim();
+  if(!id) return;
+  const key = getInsCompletionKey();
+  const all = getInsCompletions();
+  if(!all[key]) all[key] = {};
+  all[key][id] = {
+    done: true, note,
+    by:   currentUser,
+    at:   new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})
+  };
+  LS.set('insCompletions', all);
+  closeOverlay('overlay-ins-tick');
+  renderInstructions();
+  toast('Task marked complete ✓');
+}
+
+function unTickInstruction(id){
+  const key = getInsCompletionKey();
+  const all = getInsCompletions();
+  if(all[key]) delete all[key][id];
+  LS.set('insCompletions', all);
   renderInstructions();
 }
 
 function deleteInstruction(id){
+  if(!confirm('Delete this instruction?')) return;
   LS.set('instructions',(LS.get('instructions')||[]).filter(i=>i.id!==id));
   renderInstructions();
+  toast('Deleted');
+}
+
+function updateInsProgress(done, total){
+  const wrap  = document.getElementById('ins-progress-wrap');
+  const label = document.getElementById('ins-progress-label');
+  const pct   = document.getElementById('ins-progress-pct');
+  const bar   = document.getElementById('ins-progress-bar');
+  if(!wrap) return;
+  wrap.style.display = total > 0 ? 'block' : 'none';
+  const p = total > 0 ? Math.round((done/total)*100) : 0;
+  if(label) label.textContent = done + ' of ' + total + ' completed';
+  if(pct)   pct.textContent   = p + '%';
+  if(bar){
+    bar.style.width      = p + '%';
+    bar.style.background = p===100 ? '#22c55e' : p>=50 ? '#f97316' : '#c0392b';
+  }
+}
+
+function checkDailyReset(){
+  // Show last reset time in instructions page
+  const resetEl = document.getElementById('ins-reset-info');
+  if(!resetEl) return;
+  const now   = new Date();
+  const h     = now.getHours();
+  const shift = (h>=8 && h<20) ? 'DAY' : 'NIGHT';
+  const nextReset = shift==='DAY'
+    ? 'Daily instructions reset at 8:00 PM (Night shift start)'
+    : 'Daily instructions reset at 8:00 AM (Day shift start)';
+  resetEl.textContent = '🔄 ' + nextReset + ' · Permanent instructions never reset';
 }
 
 function renderInstructions(){
-  const ins = LS.get('instructions')||[];
   const el = document.getElementById('instructions-list');
   if(!el) return;
-  if(!ins.length){ el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>No instructions yet.</div>'; return; }
-  const priColor={urgent:'badge-red',high:'badge-amber',normal:'badge-navy'};
-  el.innerHTML = ins.map(i=>`
-    <div class="card" style="margin-bottom:8px;border-left:4px solid ${i.done?'var(--green)':'var(--gold)'}">
-      <div class="card-body" style="display:flex;align-items:center;gap:12px">
-        <input type="checkbox" ${i.done?'checked':''} onchange="toggleInstruction('${i.id}')"
-          style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;cursor:pointer">
-        <div style="flex:1">
-          <div style="font-weight:600;color:var(--navy);${i.done?'text-decoration:line-through;opacity:.5':''}">${i.title}</div>
-          <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
-            ${i.supervisor?`<span class="badge badge-navy">👤 ${i.supervisor}</span>`:''}
-            <span class="badge ${priColor[i.priority]||'badge-navy'}">${i.priority.toUpperCase()}</span>
-          </div>
-        </div>
-        <button class="btn btn-danger btn-xs" onclick="deleteInstruction('${i.id}')">🗑</button>
-      </div>
-    </div>`).join('');
-}
+  const isOwner = currentRole === 'owner';
+  const addBtn  = document.getElementById('ins-add-btn');
+  if(addBtn) addBtn.style.display = isOwner ? '' : 'none';
 
+  const allIns  = LS.get('instructions')||[];
+  const key     = getInsCompletionKey();
+  const comps   = (getInsCompletions()[key])||{};
+  const groups  = getMachineGroups();
+
+  const filtered = allIns.filter(i=> i.shift===activeInsTab || i.shift==='BOTH');
+
+  if(!filtered.length){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>No instructions for ' +
+      (activeInsTab==='DAY'?'Day':'Night') + ' shift.' + (isOwner?' Tap + to add.':'') + '</div>';
+    updateInsProgress(0,0);
+    return;
+  }
+
+  const priOrder = {urgent:0,high:1,normal:2};
+  const sorted = [...filtered].sort((a,b)=>{
+    const aDone = !!(comps[a.id]?.done);
+    const bDone = !!(comps[b.id]?.done);
+    if(aDone !== bDone) return aDone ? 1 : -1;
+    return (priOrder[a.priority]||2) - (priOrder[b.priority]||2);
+  });
+
+  const priColors = {
+    urgent:{color:'#c0392b',bg:'#fdecea',label:'🚨 URGENT'},
+    high:  {color:'#b5621e',bg:'#fef3e2',label:'⚠ HIGH'},
+    normal:{color:'#475569',bg:'#f1f5f9',label:''}
+  };
+
+  const done  = sorted.filter(i=>comps[i.id]?.done).length;
+  updateInsProgress(done, sorted.length);
+
+  el.innerHTML = sorted.map(i=>{
+    const comp   = comps[i.id];
+    const isDone = !!comp?.done;
+    const grp    = groups.find(g=>g.id===i.group);
+    const pri    = priColors[i.priority] || priColors.normal;
+    const typeTag = i.daily !== false
+      ? '<span style="font-size:.62rem;color:#27ae60;font-weight:600">🔄 Daily</span>'
+      : '<span style="font-size:.62rem;color:#8e44ad;font-weight:600">📌 Permanent</span>';
+
+    return '<div style="background:#fff;border-radius:12px;border:1.5px solid ' + (isDone?'#22c55e':'var(--border)') + ';border-left:4px solid ' + (isDone?'#22c55e':(pri.color||'#e0e0e0')) + ';padding:14px 16px;margin-bottom:8px">' +
+      '<div style="display:flex;align-items:flex-start;gap:12px">' +
+        '<div onclick="' + (isDone ? "unTickInstruction('" + i.id + "')" : "openTickModal('" + i.id + "')") + '" ' +
+          'style="width:24px;height:24px;border-radius:50%;border:2px solid ' + (isDone?'#22c55e':'#ccc') + ';background:' + (isDone?'#22c55e':'#fff') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;margin-top:2px">' +
+          (isDone?'<span style="color:#fff;font-size:14px">✓</span>':'') +
+        '</div>' +
+        '<div style="flex:1">' +
+          '<div style="font-weight:600;font-size:.9rem;color:var(--navy);' + (isDone?'text-decoration:line-through;opacity:.55':'') + '">' + i.title + '</div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;align-items:center">' +
+            (pri.label ? '<span style="font-size:.65rem;font-weight:700;color:' + pri.color + ';background:' + pri.bg + ';padding:2px 8px;border-radius:10px">' + pri.label + '</span>' : '') +
+            (grp ? '<span style="font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:10px;background:' + grp.color + '22;color:' + grp.color + '">👥 ' + grp.name + '</span>' : '') +
+            typeTag +
+          '</div>' +
+          (isDone ? '<div style="margin-top:6px;font-size:.72rem;color:#22c55e;font-weight:600">✓ Done by ' + comp.by + ' at ' + comp.at + (comp.note ? ' · "' + comp.note + '"' : '') + '</div>' : '') +
+          (!isDone ? '<div style="margin-top:4px;font-size:.72rem;color:var(--muted)">Tap circle to mark done</div>' : '') +
+        '</div>' +
+        (isOwner ? '<div style="display:flex;gap:4px;flex-shrink:0"><button class="btn btn-ghost btn-xs" onclick="openInstructionModal(\'' + i.id + '\')">✏️</button><button class="btn btn-danger btn-xs" onclick="deleteInstruction(\'' + i.id + '\')">🗑</button></div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
 // ═══════════════════════════════════════════════
 //  SETTINGS / PASSWORD
 // ═══════════════════════════════════════════════
@@ -2640,6 +3992,102 @@ function savePassword(){
     if(el) el.value = '';
   });
   onPwdInput();
+}
+
+// ═══════════════════════════════════════════════
+//  MACHINE GROUPS
+// ═══════════════════════════════════════════════
+let editingGroupId = null;
+
+function switchMachinesTab(tab){
+  const isMachines = tab === 'machines';
+  document.getElementById('mstab-machines-body').style.display = isMachines ? '' : 'none';
+  document.getElementById('mstab-groups-body').style.display   = isMachines ? 'none' : '';
+  const mBtn = document.getElementById('mstab-machines');
+  const gBtn = document.getElementById('mstab-groups');
+  if(mBtn){ mBtn.style.color = isMachines?'var(--red)':'var(--muted)'; mBtn.style.borderBottom = isMachines?'2px solid var(--red)':'2px solid transparent'; }
+  if(gBtn){ gBtn.style.color = isMachines?'var(--muted)':'var(--red)'; gBtn.style.borderBottom = isMachines?'2px solid transparent':'2px solid var(--red)'; }
+  if(!isMachines) renderGroups();
+}
+
+function openGroupModal(id=null){
+  editingGroupId = id;
+  const groups   = getMachineGroups();
+  const g        = id ? groups.find(g=>g.id===id) : null;
+  document.getElementById('grpm-title').textContent = g ? 'Edit Group' : 'Add Group';
+  document.getElementById('grpm-name').value     = g?.name     || '';
+  document.getElementById('grpm-machines').value = g?.machines || '';
+  document.getElementById('grpm-color').value    = g?.color    || '#c0392b';
+  document.getElementById('grpm-preview').textContent = '';
+  // Highlight selected colour
+  selectGroupColor(g?.color || '#c0392b');
+  // Live preview
+  document.getElementById('grpm-machines').oninput = function(){
+    const nums = parseMachineRange(this.value);
+    document.getElementById('grpm-preview').textContent = nums.length ? `${nums.length} machines: ${nums.slice(0,10).join(', ')}${nums.length>10?'...':''}` : '';
+  };
+  openOverlay('overlay-group');
+}
+
+function selectGroupColor(color){
+  document.getElementById('grpm-color').value = color;
+  document.querySelectorAll('#grpm-colors [data-color]').forEach(el=>{
+    el.style.border = el.dataset.color === color ? '3px solid #1a1a1a' : '3px solid transparent';
+  });
+}
+
+function saveGroup(){
+  const name     = document.getElementById('grpm-name').value.trim();
+  const machines = document.getElementById('grpm-machines').value.trim();
+  const color    = document.getElementById('grpm-color').value || '#c0392b';
+  if(!name)     { toast('Enter a group name'); return; }
+  if(!machines) { toast('Enter machine numbers'); return; }
+
+  const groups = getMachineGroups();
+  if(editingGroupId){
+    const idx = groups.findIndex(g=>g.id===editingGroupId);
+    if(idx>=0){ groups[idx].name=name; groups[idx].machines=machines; groups[idx].color=color; }
+  } else {
+    groups.push({ id:'grp_'+Date.now(), name, machines, color });
+  }
+  LS.set('machineGroups', groups);
+  closeOverlay('overlay-group');
+  renderGroups();
+  toast((editingGroupId?'Group updated':'Group added')+' ✓');
+}
+
+function deleteGroup(id){
+  if(!confirm('Delete this group?')) return;
+  LS.set('machineGroups', getMachineGroups().filter(g=>g.id!==id));
+  renderGroups();
+  renderMcList();
+  toast('Group deleted');
+}
+
+function renderGroups(){
+  const el = document.getElementById('groups-list');
+  if(!el) return;
+  const groups = getMachineGroups();
+  if(!groups.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">👥</div>No groups yet.</div>';
+    return;
+  }
+  el.innerHTML = groups.map(g=>{
+    const nums = parseMachineRange(g.machines);
+    return `<div class="card" style="margin-bottom:10px">
+      <div class="card-body" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="width:40px;height:40px;border-radius:10px;background:${g.color};flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:var(--navy)">${g.name}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:2px">${nums.length} machines · ${g.machines}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="openGroupModal('${g.id}')">✏️ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteGroup('${g.id}')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════
@@ -2945,7 +4393,7 @@ async function init(){
   try {
     await Promise.race([
       initStores(),
-      new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 6000))
+      new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 2000))
     ]);
     startFirebaseSync();
   } catch(e){
@@ -2967,14 +4415,14 @@ async function init(){
 }
 
 function postLoginInit(){
-  currentShift = autoShift();
+  currentShift     = autoShift();
   currentShiftDate = todayStr();
-  const reports = LS.get('reports')||[];
+  const reports    = LS.get('reports')||[];
   const todayReport = reports.find(r=>r.date===currentShiftDate && r.shift===currentShift);
   if(todayReport) currentEntry = JSON.parse(JSON.stringify(todayReport.entry||{}));
-  // Update header with user info
   updateUserHeader();
-  navigate('entry');
+  // Go to instructions first on login, not entry
+  navigateDirect('instructions');
 }
 
 // Start the app when DOM is fully ready
@@ -3033,6 +4481,20 @@ function openChangeModal(id=null){
   document.getElementById('chg-needle-type').value   = chg?.needleType || '';
   document.getElementById('chg-needle-butt').value   = chg?.needleButt || '';
   document.getElementById('chg-needle-reason').value = chg?.needleReason || 'Broken';
+
+  // Load butt rows — cylinder (1-4) and dial (1-2)
+  const buttChanges = chg?.buttChanges || {};
+  [['cyl',4],['dial',2]].forEach(([type,max])=>{
+    for(let n=1;n<=max;n++){
+      const b   = buttChanges[`${type}${n}`]||{};
+      const chkEl = document.getElementById(`chg-${type}${n}-chk`);
+      const cntEl = document.getElementById(`chg-${type}${n}-count`);
+      const dtEl  = document.getElementById(`chg-${type}${n}-date`);
+      if(chkEl){ chkEl.checked = !!b.changed; }
+      if(cntEl){ cntEl.value = b.count||''; cntEl.disabled = !b.changed; cntEl.style.opacity = b.changed?'1':'.4'; }
+      if(dtEl) { dtEl.value  = b.date||'';  dtEl.disabled  = !b.changed; dtEl.style.opacity  = b.changed?'1':'.4'; }
+    }
+  });
   document.getElementById('chg-cam-type').value      = chg?.camType || '';
   document.getElementById('chg-cam-position').value  = chg?.camPosition || '';
   document.getElementById('chg-cam-reason').value    = chg?.camReason || 'Broken';
@@ -3054,6 +4516,20 @@ function openChangeModal(id=null){
   onChgTypeChange();
   calcDowntime();
   openOverlay('overlay-change');
+}
+
+function toggleButtRow(type, num){
+  const prefix = `chg-${type}${num}`;
+  const chk   = document.getElementById(`${prefix}-chk`);
+  const count = document.getElementById(`${prefix}-count`);
+  const date  = document.getElementById(`${prefix}-date`);
+  if(!chk) return;
+  const on = chk.checked;
+  count.disabled = !on; count.style.opacity = on?'1':'.4';
+  date.disabled  = !on; date.style.opacity  = on?'1':'.4';
+  if(on && !date.value){
+    date.value = document.getElementById('chg-date')?.value || todayStr();
+  }
 }
 
 function onChgMcInput(){
@@ -3150,6 +4626,22 @@ function saveChange(){
     needleType:   document.getElementById('chg-needle-type').value.trim(),
     needleButt:   document.getElementById('chg-needle-butt').value.trim(),
     needleReason: document.getElementById('chg-needle-reason').value,
+    buttChanges:  (()=>{
+      const b = {};
+      [['cyl',4],['dial',2]].forEach(([type,max])=>{
+        for(let n=1;n<=max;n++){
+          const chkEl = document.getElementById(`chg-${type}${n}-chk`);
+          if(chkEl?.checked){
+            b[`${type}${n}`] = {
+              changed: true,
+              count:   document.getElementById(`chg-${type}${n}-count`)?.value||'',
+              date:    document.getElementById(`chg-${type}${n}-date`)?.value||''
+            };
+          }
+        }
+      });
+      return b;
+    })(),
     camType:      document.getElementById('chg-cam-type').value.trim(),
     camPosition:  document.getElementById('chg-cam-position').value.trim(),
     camReason:    document.getElementById('chg-cam-reason').value,
@@ -3162,28 +4654,36 @@ function saveChange(){
     createdAt:    editingChangeId ? undefined : new Date().toISOString()
   };
 
-  // Auto-update machineStatus
-  const mcStatus = LS.get('machineStatus') || {};
-  if(!mcStatus[mc]) mcStatus[mc] = {};
+  // Auto-update machineStatus for needle changes
+  const mcStatus2 = LS.get('machineStatus') || {};
+  if(!mcStatus2[mc]) mcStatus2[mc] = {};
 
   if(type === 'NEEDLE'){
-    // Auto-set needle date and butt
-    mcStatus[mc].needleDate = date;
-    if(record.needleButt) mcStatus[mc].needleButt = record.needleButt;
+    const bc = record.buttChanges || {};
+    // Check if full cylinder set (all 4 butts changed)
+    const cylFull = [1,2,3,4].every(n => bc[`cyl${n}`]?.changed);
+    // Check if full dial set (both butts changed)
+    const dialFull = [1,2].every(n => bc[`dial${n}`]?.changed);
+    if(cylFull){
+      mcStatus2[mc].cylDate  = date;
+      mcStatus2[mc].cylCount = [1,2,3,4].reduce((s,n)=>s+(parseInt(bc[`cyl${n}`]?.count)||0),0) || '';
+    }
+    if(dialFull){
+      mcStatus2[mc].dialDate  = date;
+      mcStatus2[mc].dialCount = [1,2].reduce((s,n)=>s+(parseInt(bc[`dial${n}`]?.count)||0),0) || '';
+    }
   }
 
   if(type === 'QUALITY' && record.qualityNew){
-    // Move current → last, set new as current
-    const machines = LS.get('machines')||[];
-    const m = machines.find(m=>m.num===mc);
-    const currentQId = m?.quality || mcStatus[mc].currentQuality || '';
-    if(currentQId) mcStatus[mc].lastQuality = currentQId;
-    mcStatus[mc].currentQuality = record.qualityNew;
-    // Also update machine assignment
-    if(m){ m.quality = record.qualityNew; LS.set('machines', machines); }
+    const machines2 = LS.get('machines')||[];
+    const m2 = machines2.find(m=>m.num===mc);
+    const currentQId = m2?.quality || mcStatus2[mc].currentQuality || '';
+    if(currentQId) mcStatus2[mc].lastQuality = currentQId;
+    mcStatus2[mc].currentQuality = record.qualityNew;
+    if(m2){ m2.quality = record.qualityNew; LS.set('machines', machines2); }
   }
 
-  LS.set('machineStatus', mcStatus);
+  LS.set('machineStatus', mcStatus2);
 
   const changes = LS.get('changes')||[];
   if(editingChangeId){
@@ -3200,61 +4700,118 @@ function saveChange(){
 }
 
 function renderChanges(){
-  renderMcStatusTable();
+  renderNeedleSetTable();
   renderChangeLog();
 }
 
 function switchChangesTab(tab){
-  const isStatus = tab === 'status';
-  document.getElementById('changes-tab-status').style.display = isStatus ? '' : 'none';
-  document.getElementById('changes-tab-log').style.display    = isStatus ? 'none' : '';
-  const stBtn = document.getElementById('chtab-status');
-  const lgBtn = document.getElementById('chtab-log');
-  stBtn.style.color        = isStatus ? 'var(--gold)'  : 'var(--muted)';
-  stBtn.style.borderBottom = isStatus ? '2px solid var(--gold)' : '2px solid transparent';
-  lgBtn.style.color        = isStatus ? 'var(--muted)' : 'var(--gold)';
-  lgBtn.style.borderBottom = isStatus ? '2px solid transparent' : '2px solid var(--gold)';
+  ['needles','quality','log'].forEach(t=>{
+    const body = document.getElementById(`changes-tab-${t}`);
+    const btn  = document.getElementById(`chtab-${t}`);
+    if(body) body.style.display = t===tab ? '' : 'none';
+    if(btn){
+      btn.style.color        = t===tab ? 'var(--red)'   : 'var(--muted)';
+      btn.style.borderBottom = t===tab ? '2px solid var(--red)' : '2px solid transparent';
+    }
+  });
+  if(tab==='needles') renderNeedleSetTable();
+  if(tab==='quality') renderQualityChangeTable();
+  if(tab==='log')     renderChangeLog();
 }
 
-let editingMcStatusNum = null;
+// ── Helper: age display ──
+function ageDisplay(dateStr){
+  if(!dateStr) return { text:'Never', cls:'', days:-1 };
+  const days = Math.floor((new Date() - new Date(dateStr)) / 86400000);
+  const months = Math.floor(days / 30);
+  const text = months >= 12 ? `${Math.floor(months/12)}y ${months%12}m`
+             : months > 0   ? `${months} months`
+             : `${days}d`;
+  const cls  = days > 365 ? 'needle-date-old'
+             : days > 180 ? 'needle-date-warn'
+             : 'needle-date-ok';
+  const bg   = days > 365 ? '#fee2e2' : days > 180 ? '#fef9c3' : '#dcfce7';
+  const col  = days > 365 ? '#991b1b' : days > 180 ? '#854d0e' : '#166534';
+  return { text, cls, days, bg, col };
+}
 
-function renderMcStatusTable(){
-  const tbody = document.getElementById('mc-status-tbody');
+function renderNeedleSetTable(){
+  const tbody    = document.getElementById('needle-set-tbody');
   if(!tbody) return;
   const machines  = LS.get('machines')||[];
   const qualities = LS.get('qualities')||[];
   const mcStatus  = LS.get('machineStatus')||{};
-  const today     = new Date();
 
   let rows = '';
-  for(let mc = 1; mc <= 100; mc++){
-    const m   = machines.find(m=>m.num===mc)||{};
-    const st  = mcStatus[mc]||{};
+  for(let mc=1; mc<=100; mc++){
+    const m  = machines.find(m=>m.num===mc)||{};
+    const st = mcStatus[mc]||{};
+    const q  = qualities.find(q=>q.id===(m.quality||st.currentQuality));
 
-    // Current quality: machine assignment takes priority over status store
-    const curQId  = m.quality || st.currentQuality || '';
-    const lastQId = st.lastQuality || '';
-    const curQ    = qualities.find(q=>q.id===curQId);
-    const lastQ   = qualities.find(q=>q.id===lastQId);
+    const cyl  = ageDisplay(st.cylDate);
+    const dial = ageDisplay(st.dialDate);
 
-    // Needle date colouring: >30 days = red, 15–30 = amber, <15 = green
-    let ndCls = '', ndDisplay = '—';
-    if(st.needleDate){
-      const nd   = new Date(st.needleDate);
-      const days = Math.floor((today - nd) / 86400000);
-      ndDisplay  = st.needleDate + ` <span style="font-size:.65rem">(${days}d)</span>`;
-      ndCls      = days > 30 ? 'needle-date-old' : days > 15 ? 'needle-date-warn' : 'needle-date-ok';
-    }
+    const cylCell  = st.cylDate
+      ? `<div style="font-size:.72rem">${st.cylDate}${st.cylCount?' · '+st.cylCount+' needles':''}</div>
+         <span style="background:${cyl.bg};color:${cyl.col};padding:2px 7px;border-radius:6px;font-size:.65rem;font-weight:700">${cyl.text} ago</span>`
+      : '<span style="color:#ccc;font-size:.72rem">Not recorded</span>';
 
-    rows += `<tr class="mc-status-row" onclick="openMcStatusEdit(${mc})">
-      <td>${mc}</td>
-      <td>${curQ ? `<span class="badge badge-gold">${curQ.name}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-      <td>${lastQ ? `<span class="badge badge-navy">${lastQ.name}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
-      <td class="${ndCls}">${ndDisplay}</td>
-      <td>${st.needleButt ? `<span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:.72rem">${st.needleButt}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+    const dialCell = st.dialDate
+      ? `<div style="font-size:.72rem">${st.dialDate}${st.dialCount?' · '+st.dialCount+' needles':''}</div>
+         <span style="background:${dial.bg};color:${dial.col};padding:2px 7px;border-radius:6px;font-size:.65rem;font-weight:700">${dial.text} ago</span>`
+      : '<span style="color:#ccc;font-size:.72rem">Not recorded</span>';
+
+    // Row background if overdue
+    const rowBg = (cyl.days > 365 || dial.days > 365) ? 'background:#fff8f8' : '';
+
+    rows += `<tr style="${rowBg};cursor:pointer" onclick="openMcStatusEdit(${mc})">
+      <td><strong>${mc}</strong></td>
+      <td style="font-size:.72rem;color:var(--muted)">${m.operator||'—'}</td>
+      <td>${q ? `<span class="badge badge-gold">${q.name}</span>` : '<span style="color:#ccc">—</span>'}</td>
+      <td>${cylCell}</td>
+      <td>${dialCell}</td>
+      <td style="font-size:.72rem;color:var(--muted);font-style:${st.remarks?'normal':'italic'}">${st.remarks||'—'}</td>
+      <td><button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();openMcStatusEdit(${mc})">✏️</button></td>
     </tr>`;
   }
   tbody.innerHTML = rows;
+}
+
+function renderQualityChangeTable(){
+  const tbody    = document.getElementById('quality-change-tbody');
+  if(!tbody) return;
+  const machines  = LS.get('machines')||[];
+  const qualities = LS.get('qualities')||[];
+  const changes   = LS.get('changes')||[];
+
+  // Get latest quality change per machine
+  const latestQChg = {};
+  changes.filter(c=>c.type==='QUALITY').forEach(c=>{
+    if(!latestQChg[c.mc] || c.date > latestQChg[c.mc].date)
+      latestQChg[c.mc] = c;
+  });
+
+  let rows = '';
+  for(let mc=1; mc<=100; mc++){
+    const m   = machines.find(m=>m.num===mc)||{};
+    const chg = latestQChg[mc];
+    const curQ = qualities.find(q=>q.id===m.quality);
+    const prevQ = chg ? qualities.find(q=>q.id===chg.qualityOld) : null;
+
+    if(!chg && !curQ) continue; // skip machines with no data at all
+
+    const age = chg ? ageDisplay(chg.date) : null;
+    rows += `<tr>
+      <td><strong>${mc}</strong></td>
+      <td style="font-size:.72rem;color:var(--muted)">${m.operator||'—'}</td>
+      <td>${curQ ? `<span class="badge badge-gold">${curQ.name}</span>` : '<span style="color:#ccc">—</span>'}</td>
+      <td>${prevQ ? `<span class="badge badge-navy">${prevQ.name}</span>` : '<span style="color:#ccc">—</span>'}</td>
+      <td style="font-size:.72rem">${chg ? chg.date : '—'}</td>
+      <td style="font-size:.72rem;color:var(--muted)">${chg ? (chg.fitter||'—') : '—'}</td>
+      <td>${age ? `<span style="background:${age.bg};color:${age.col};padding:2px 8px;border-radius:6px;font-size:.68rem;font-weight:700">${age.text} ago</span>` : '—'}</td>
+    </tr>`;
+  }
+  tbody.innerHTML = rows || '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No quality changes logged yet.</td></tr>';
 }
 
 function openMcStatusEdit(mc){
@@ -3262,15 +4819,19 @@ function openMcStatusEdit(mc){
   const machines  = LS.get('machines')||[];
   const qualities = LS.get('qualities')||[];
   const mcStatus  = LS.get('machineStatus')||{};
-  const m   = machines.find(m=>m.num===mc)||{};
-  const st  = mcStatus[mc]||{};
+  const m  = machines.find(m=>m.num===mc)||{};
+  const st = mcStatus[mc]||{};
   const curQ = qualities.find(q=>q.id===(m.quality||st.currentQuality));
 
-  document.getElementById('mcs-title').textContent = `Edit MC #${mc}`;
-  document.getElementById('mcs-current-info').textContent =
-    `Current: ${curQ?curQ.name:'Not set'} · Operator: ${m.operator||'—'}`;
-  document.getElementById('mcs-needle-date').value = st.needleDate || '';
-  document.getElementById('mcs-needle-butt').value = st.needleButt || '';
+  document.getElementById('mcs-title').textContent = `MC #${mc} — Full Needle Set`;
+  document.getElementById('mcs-current-info').innerHTML =
+    `<strong>MC ${mc}</strong> · ${m.operator||'No operator'} · ${curQ?curQ.name:'No quality'}`;
+  document.getElementById('mcs-cyl-date').value  = st.cylDate  || '';
+  document.getElementById('mcs-cyl-count').value = st.cylCount || '';
+  document.getElementById('mcs-dial-date').value  = st.dialDate  || '';
+  document.getElementById('mcs-dial-count').value = st.dialCount || '';
+  document.getElementById('mcs-remarks').value    = st.remarks || '';
+  document.getElementById('mcs-by').value         = st.by || '';
   openOverlay('overlay-mc-status');
 }
 
@@ -3279,12 +4840,16 @@ function saveMcStatus(){
   if(!mc) return;
   const mcStatus = LS.get('machineStatus')||{};
   if(!mcStatus[mc]) mcStatus[mc] = {};
-  mcStatus[mc].needleDate = document.getElementById('mcs-needle-date').value;
-  mcStatus[mc].needleButt = document.getElementById('mcs-needle-butt').value.trim();
+  mcStatus[mc].cylDate   = document.getElementById('mcs-cyl-date').value;
+  mcStatus[mc].cylCount  = document.getElementById('mcs-cyl-count').value;
+  mcStatus[mc].dialDate  = document.getElementById('mcs-dial-date').value;
+  mcStatus[mc].dialCount = document.getElementById('mcs-dial-count').value;
+  mcStatus[mc].remarks   = document.getElementById('mcs-remarks').value.trim();
+  mcStatus[mc].by        = document.getElementById('mcs-by').value.trim();
   LS.set('machineStatus', mcStatus);
   closeOverlay('overlay-mc-status');
-  renderMcStatusTable();
-  toast(`MC #${mc} status updated ✓`);
+  renderNeedleSetTable();
+  toast(`MC #${mc} needle set saved ✓`);
 }
 
 function renderChangeLog(){
@@ -3319,7 +4884,15 @@ function renderChangeLog(){
     const q_old = qualities.find(q=>q.id===c.qualityOld);
     const q_new = qualities.find(q=>q.id===c.qualityNew);
     let detail = '';
-    if(c.type==='NEEDLE') detail = [c.needleCount?`${c.needleCount} needles`:null, c.needleType||null, c.needleButt?`Butt: ${c.needleButt}`:null, c.needleReason||null].filter(Boolean).join(' · ');
+    if(c.type==='NEEDLE'){
+      const buttInfo = Object.entries(c.buttChanges||{})
+        .filter(([,b])=>b.changed)
+        .map(([k,b])=>{
+          const label = k.startsWith('cyl') ? `Cyl Butt ${k[3]}` : `Dial Butt ${k[4]}`;
+          return `${label}: ${b.count||'?'} needles${b.date?' ('+b.date+')':''}`;
+        }).join(' · ');
+      detail = [c.needleType||null, c.needleReason||null, buttInfo||null].filter(Boolean).join(' · ');
+    }
     if(c.type==='CAM')    detail = [c.camType||null, c.camPosition?`Pos: ${c.camPosition}`:null, c.camReason||null].filter(Boolean).join(' · ');
     if(c.type==='GAUGE')  detail = [c.gaugeOld?`${c.gaugeOld} →`:null, c.gaugeNew||null].filter(Boolean).join(' ');
     if(c.type==='QUALITY') detail = [q_old?q_old.name:'?', '→', q_new?q_new.name:'?'].join(' ');
@@ -3366,8 +4939,11 @@ function viewChangeDetail(id){
     c.downtimeMins>0 ? ['Downtime', `${c.downFrom} – ${c.downTo} (${Math.floor(c.downtimeMins/60)}h ${c.downtimeMins%60}m)`] : null,
     c.type==='NEEDLE' && c.needleCount ? ['Needles Changed', c.needleCount] : null,
     c.type==='NEEDLE' && c.needleType  ? ['Needle Type', c.needleType] : null,
-    c.type==='NEEDLE' && c.needleButt  ? ['Needle Butt', c.needleButt] : null,
     c.type==='NEEDLE' && c.needleReason? ['Reason', c.needleReason] : null,
+    ...(c.type==='NEEDLE' ? Object.entries(c.buttChanges||{}).filter(([,b])=>b.changed).map(([k,b])=>{
+      const label = k.startsWith('cyl') ? `Cylinder Butt ${k[3]}` : `Dial Butt ${k[4]}`;
+      return [label, `${b.count||'—'} needles${b.date?' · '+b.date:''}`];
+    }) : []),
     c.type==='CAM' && c.camType        ? ['Cam Type', c.camType] : null,
     c.type==='CAM' && c.camPosition    ? ['Position', c.camPosition] : null,
     c.type==='CAM' && c.camReason      ? ['Reason', c.camReason] : null,
@@ -3443,7 +5019,7 @@ function loadPdfSeed() {
   currentEntry = JSON.parse(JSON.stringify(report.entry));
 
   toast('✓ PDF data loaded — 41 qualities, 100 machines, 33 RC overrides, report imported');
-  navigate('entry');
+  navigateDirect('entry');
   const btn = document.getElementById('import-seed-btn');
   if(btn){ btn.textContent = '✓ Loaded'; btn.disabled = true; }
 }
